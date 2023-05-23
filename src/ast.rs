@@ -56,6 +56,14 @@ pub enum Expression {
         close: Span,
     },
 }
+impl Expression {
+    pub fn is_print_expr(&self) -> bool {
+        match self {
+            Expression::FunctionCall { name, .. } => **name == "print",
+            _ => false,
+        }
+    }
+}
 
 impl Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

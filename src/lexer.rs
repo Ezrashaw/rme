@@ -3,16 +3,13 @@ use std::{
     num::ParseFloatError,
 };
 
-use crate::{
-    diag::{Diag, DiagEmitter},
-    Sp, Span,
-};
+use crate::{DErr, Sp, Span};
 
 pub type Token = Sp<TokenKind>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenKind {
-    Number(f32),
+    Literal(f32),
     Identifier(String),
 
     LetKeyword,
@@ -32,7 +29,7 @@ pub enum TokenKind {
 impl Display for TokenKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Number(num) => write!(f, "{num}"),
+            Self::Literal(num) => write!(f, "{num}"),
             Self::Identifier(_) => write!(f, "<identifier>"),
             Self::Equals => write!(f, "="),
             Self::Comma => write!(f, ","),
@@ -47,20 +44,18 @@ impl Display for TokenKind {
     }
 }
 
-pub struct Lexer<'inp, 'em> {
+pub struct Lexer<'inp> {
     input: &'inp [u8],
     position: usize,
-    emitter: &'em DiagEmitter<'em>,
     span_offset: usize,
 }
 
-impl<'inp, 'em> Lexer<'inp, 'em> {
-    pub fn new(input: &'inp str, emitter: &'em DiagEmitter<'em>, span_offset: usize) -> Self {
+impl<'inp> Lexer<'inp> {
+    pub fn new(input: &'inp str, span_offset: usize) -> Self {
         assert!(input.is_ascii());
         Self {
             input: input.as_bytes(),
             position: 0,
-            emitter,
             span_offset,
         }
     }
@@ -79,7 +74,7 @@ impl<'inp, 'em> Lexer<'inp, 'em> {
         (self.position < self.input.len()).then(|| self.input[self.position])
     }
 
-    fn next_token(&mut self) -> Option<Result<Token, Diag>> {
+    fn next_token(&mut self) -> Option<Result<Token, DErr>> {
         let ch = loop {
             let ch = self.next_char()?;
             if !ch.is_ascii_whitespace() {
@@ -109,9 +104,9 @@ impl<'inp, 'em> Lexer<'inp, 'em> {
 
             ch if ch.is_ascii_digit() || ch == b'.' => {
                 if let Ok(num) = self.next_number(ch) {
-                    TokenKind::Number(num)
+                    TokenKind::Literal(num)
                 } else {
-                    let err = self.emitter.create_err(
+                    let err = DErr::new_err(
                         "invalid float literal",
                         self.new_span(span_start, self.position),
                     );
@@ -121,7 +116,7 @@ impl<'inp, 'em> Lexer<'inp, 'em> {
             }
 
             ch => {
-                let err = self.emitter.create_err(
+                let err = DErr::new_err(
                     format!("invalid start of token `{}`", ch as char),
                     self.new_span(span_start, self.position),
                 );
@@ -164,8 +159,8 @@ impl<'inp, 'em> Lexer<'inp, 'em> {
     }
 }
 
-impl Iterator for Lexer<'_, '_> {
-    type Item = Result<Token, Diag>;
+impl Iterator for Lexer<'_> {
+    type Item = Result<Token, DErr>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token()

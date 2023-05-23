@@ -1,108 +1,106 @@
-use std::fmt::Display;
+use std::{
+    fmt::{Debug, Display},
+    iter,
+};
 
 use crate::{SourceMap, Span};
 
-#[derive(Debug, Clone, Copy)]
-pub enum DiagLevel {
-    Error,
-    Warn,
-    Info,
-}
+use self::level::*;
 
-impl Display for DiagLevel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\x1B[3;1;")?;
-        match self {
-            Self::Error => write!(f, "31merror")?,
-            Self::Warn => write!(f, "33mwarning")?,
-            Self::Info => write!(f, "36minfo")?,
-        }
+pub use level::{ErrorLevel, SubDiagLevel};
+mod level;
 
-        write!(f, "\x1B[0m")
-    }
-}
-
-pub struct DiagEmitter<'a> {
-    source: &'a SourceMap,
-}
-
-impl<'a> DiagEmitter<'a> {
-    pub fn new(source: &'a SourceMap) -> Self {
-        Self { source }
-    }
-
-    pub fn create_diag(&self, level: DiagLevel, msg: impl Display, span: Span) -> Diag {
-        Diag {
-            level,
-            msg: msg.to_string(),
-            span,
-            emitted: false,
-        }
-    }
-
-    pub fn create_err(&self, msg: impl Display, span: Span) -> Diag {
-        self.create_diag(DiagLevel::Error, msg, span)
-    }
-}
+pub type DErr = DiagInner<ErrorLevel>;
+pub type SubDiag = DiagInner<SubDiagLevel>;
 
 #[derive(Debug)]
-pub struct Diag {
-    level: DiagLevel,
+pub struct DiagInner<L: DiagnosticLevel> {
+    level: L,
     msg: String,
-    span: Span,
+    span: Option<Span>,
+    sub_diags: Vec<DiagInner<SubDiagLevel>>,
 
     emitted: bool,
 }
 
-impl Drop for Diag {
+impl<L: DiagnosticLevel> Drop for DiagInner<L> {
     fn drop(&mut self) {
         if !self.emitted {
-            panic!("dropped `Diag` {self:?}")
+            panic!(
+                "dropped `Diag` {:?}",
+                (self.level.name(), &self.msg, self.span)
+            );
         }
     }
 }
 
-impl Diag {
-    pub fn emit(self, source_map: &SourceMap) {
-        let (line, mut span) = source_map.get_span_lined(self.span);
-        span = span.ensure_clamped(line.len() - 1);
+impl DiagInner<ErrorLevel> {
+    pub fn new_err(msg: impl Display, span: Span) -> Self {
+        Self::new(ErrorLevel, msg, span)
+    }
+}
 
-        if span.len() == 0 {
-            span = Span::new_single(span.start());
+impl<L: DiagnosticLevel> DiagInner<L> {
+    pub fn new(level: L, msg: impl Display, span: Span) -> Self {
+        Self {
+            level,
+            msg: msg.to_string(),
+            span: Some(span),
+            emitted: false,
+            sub_diags: Vec::new(),
         }
-
-        println!("{}: {}", self.level, self.msg);
-        print!("\n    {line}");
-        print!("    {:width$}", "", width = span.start());
-        println!("\x1B[1;96m{:^^width$}\x1B[0m", "", width = span.len());
-
-        self.emitted();
     }
 
-    fn emitted(mut self) {
+    pub fn without_span(level: L, msg: impl Display) -> Self {
+        Self {
+            level,
+            msg: msg.to_string(),
+            span: None,
+            emitted: false,
+            sub_diags: Vec::new(),
+        }
+    }
+
+    pub fn add_subdiag(&mut self, mut sub_diag: SubDiag) {
+        sub_diag.emitted = true;
+        self.sub_diags.push(sub_diag);
+    }
+
+    pub fn emit(mut self, source_map: &SourceMap) {
+        self.emit_(source_map, 0);
+
         self.emitted = true;
         drop(self)
     }
+
+    fn emit_(&self, source_map: &SourceMap, indent: usize) {
+        let mut arrows = String::from_iter(iter::once('>').take(indent * 2));
+        if !arrows.is_empty() {
+            arrows.push(' ');
+        }
+
+        println!(
+            "{arrows}\x1B[1;3;{}m{}\x1B[0m: {}",
+            self.level.ansi_color_code(),
+            self.level.name(),
+            self.msg
+        );
+
+        if let Some(span) = self.span {
+            let (line, mut span) = source_map.get_span_lined(span);
+            span = span.ensure_clamped(line.len() - 1);
+
+            if span.len() == 0 {
+                span = Span::new_single(span.start());
+            }
+
+            print!("{arrows}\n{arrows}    {line}");
+            print!("{arrows}    {:width$}", "", width = span.start());
+            println!("\x1B[1;96m{:^^width$}\x1B[0m", "", width = span.len());
+        }
+
+        for sub_diag in &self.sub_diags {
+            sub_diag.emit_(source_map, indent + 1);
+        }
+    }
 }
-
-// pub trait ToDiag<T> {
-//     fn to_diag<'em, 'msg>(
-//         self,
-//         emitter: &'em DiagEmitter,
-//         level: DiagLevel,
-//         msg: &'msg str,
-//         span: Span,
-//     ) -> Result<T, Diag<'em, 'msg>>;
-// }
-
-// impl<T> ToDiag<T> for Option<T> {
-//     fn to_diag<'em, 'msg>(
-//         self,
-//         emitter: &'em DiagEmitter,
-//         level: DiagLevel,
-//         msg: &'msg str,
-//         span: Span,
-//     ) -> Result<T, Diag<'em, 'msg>> {
-//         self.ok_or(emitter.create_diag(level, msg, span))
-//     }
-// }
