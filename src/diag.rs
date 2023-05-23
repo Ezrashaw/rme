@@ -10,20 +10,20 @@ use self::level::*;
 pub use level::{ErrorLevel, SubDiagLevel};
 mod level;
 
-pub type DErr = DiagInner<ErrorLevel>;
-pub type SubDiag = DiagInner<SubDiagLevel>;
+pub type DErr = Diag<ErrorLevel>;
+pub type SubDiag = Diag<SubDiagLevel>;
 
 #[derive(Debug)]
-pub struct DiagInner<L: DiagnosticLevel> {
+pub struct Diag<L: DiagnosticLevel> {
     level: L,
     msg: String,
     span: Option<Span>,
-    sub_diags: Vec<DiagInner<SubDiagLevel>>,
+    sub_diags: Vec<Diag<SubDiagLevel>>,
 
     emitted: bool,
 }
 
-impl<L: DiagnosticLevel> Drop for DiagInner<L> {
+impl<L: DiagnosticLevel> Drop for Diag<L> {
     fn drop(&mut self) {
         if !self.emitted {
             panic!(
@@ -34,13 +34,13 @@ impl<L: DiagnosticLevel> Drop for DiagInner<L> {
     }
 }
 
-impl DiagInner<ErrorLevel> {
+impl Diag<ErrorLevel> {
     pub fn new_err(msg: impl Display, span: Span) -> Self {
         Self::new(ErrorLevel, msg, span)
     }
 }
 
-impl<L: DiagnosticLevel> DiagInner<L> {
+impl<L: DiagnosticLevel> Diag<L> {
     pub fn new(level: L, msg: impl Display, span: Span) -> Self {
         Self {
             level,
