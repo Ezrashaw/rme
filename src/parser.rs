@@ -24,7 +24,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
     fn create_expected_err(&self, expected: &str, found: Token) -> DErr {
         DErr::new_err(
-            format!("expected {expected} but found `{}`", found.inner()),
+            format!("expected {expected} but found `{}`", found.as_diag_str()),
             found.span(),
         )
     }
