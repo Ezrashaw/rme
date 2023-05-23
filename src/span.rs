@@ -1,4 +1,4 @@
-use std::{cmp, fmt::Display};
+use std::cmp;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Span {
@@ -52,7 +52,7 @@ impl Span {
         self
     }
 
-    pub fn r#move(self, distance: isize) -> Self {
+    pub fn offset(self, distance: isize) -> Self {
         let start = if self.start == usize::MAX {
             usize::MAX
         } else {
@@ -88,61 +88,17 @@ impl SourceMap {
 
         for line in &self.lines {
             if pos + line.len() > target {
-                return (line.as_str(), span.r#move(-(pos as isize)));
+                return (line.as_str(), span.offset(-(pos as isize)));
             }
             pos += line.len();
         }
 
         let line = self.lines.last().unwrap();
         let offset = pos - line.len();
-        (line, span.r#move(-(offset as isize)))
+        (line, span.offset(-(offset as isize)))
     }
 
     pub fn len(&self) -> usize {
         self.lines.iter().fold(0usize, |len, line| len + line.len())
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum DiagLevel {
-    Error,
-    Warn,
-    Info,
-}
-
-impl Display for DiagLevel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\x1B[3;1;")?;
-        match self {
-            Self::Error => write!(f, "31merror")?,
-            Self::Warn => write!(f, "33mwarning")?,
-            Self::Info => write!(f, "36minfo")?,
-        }
-
-        write!(f, "\x1B[0m")
-    }
-}
-
-pub struct DiagEmitter<'a> {
-    source: &'a SourceMap
-}
-
-impl<'a> DiagEmitter<'a> {
-    pub fn new(source: &'a SourceMap) -> Self {
-        Self { source }
-    }
-
-    pub fn print_diag(&self, level: DiagLevel, msg: impl Display, span: Span) {
-        let (line, mut span) = self.source.get_span_lined(span);
-        span = span.ensure_clamped(line.len() - 1);
-
-        if span.len() == 0 {
-            span = Span::new_single(span.start());
-        }
-
-        println!("{level}: {msg}");
-        print!("\n    {line}");
-        print!("    {:width$}", "", width = span.start());
-        println!("\x1B[1;96m{:^^width$}\x1B[0m", "", width = span.len());
     }
 }

@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 
 use crate::{Sp, SpBox, Span};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     Expr(Expression),
     VarDef(VarDef),
@@ -17,7 +17,7 @@ impl Display for Statement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VarDef {
     pub let_kw: Span,
     pub variable: Sp<String>,
@@ -31,7 +31,7 @@ impl Display for VarDef {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Paren {
         open: Span,
@@ -84,7 +84,7 @@ impl Display for Expression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BinOperator {
     Add,
     Sub,
@@ -103,7 +103,7 @@ impl Display for BinOperator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UnOperator {
     Negation,
 }

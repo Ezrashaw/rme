@@ -3,7 +3,10 @@ use std::{
     num::ParseFloatError,
 };
 
-use crate::{DiagEmitter, DiagLevel, Sp, Span};
+use crate::{
+    diag::{Diag, DiagEmitter},
+    Sp, Span,
+};
 
 pub type Token = Sp<TokenKind>;
 
@@ -44,15 +47,15 @@ impl Display for TokenKind {
     }
 }
 
-pub struct Lexer<'a> {
-    input: &'a [u8],
+pub struct Lexer<'inp, 'em> {
+    input: &'inp [u8],
     position: usize,
-    emitter: &'a DiagEmitter<'a>,
+    emitter: &'em DiagEmitter<'em>,
     span_offset: usize,
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(input: &'a str, emitter: &'a DiagEmitter<'a>, span_offset: usize) -> Self {
+impl<'inp, 'em> Lexer<'inp, 'em> {
+    pub fn new(input: &'inp str, emitter: &'em DiagEmitter<'em>, span_offset: usize) -> Self {
         assert!(input.is_ascii());
         Self {
             input: input.as_bytes(),
@@ -76,7 +79,7 @@ impl<'a> Lexer<'a> {
         (self.position < self.input.len()).then(|| self.input[self.position])
     }
 
-    fn next_token(&mut self) -> Option<Option<Token>> {
+    fn next_token(&mut self) -> Option<Result<Token, Diag>> {
         let ch = loop {
             let ch = self.next_char()?;
             if !ch.is_ascii_whitespace() {
@@ -108,30 +111,28 @@ impl<'a> Lexer<'a> {
                 if let Ok(num) = self.next_number(ch) {
                     TokenKind::Number(num)
                 } else {
-                    self.emitter.print_diag(
-                        DiagLevel::Error,
+                    let err = self.emitter.create_err(
                         "invalid float literal",
                         self.new_span(span_start, self.position),
                     );
 
-                    return Some(None);
+                    return Some(Err(err));
                 }
             }
 
             ch => {
-                self.emitter.print_diag(
-                    DiagLevel::Error,
+                let err = self.emitter.create_err(
                     format!("invalid start of token `{}`", ch as char),
                     self.new_span(span_start, self.position),
                 );
 
-                return Some(None);
+                return Some(Err(err));
             }
         };
 
         let span = self.new_span(span_start, self.position);
 
-        Some(Some(Token::new(kind, span)))
+        Some(Ok(Token::new(kind, span)))
     }
 
     fn next_identifier(&mut self, initial: u8) -> String {
@@ -163,8 +164,8 @@ impl<'a> Lexer<'a> {
     }
 }
 
-impl Iterator for Lexer<'_> {
-    type Item = Option<Token>;
+impl Iterator for Lexer<'_, '_> {
+    type Item = Result<Token, Diag>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token()

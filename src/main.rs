@@ -1,4 +1,4 @@
-use rme::{parser::Parser, DiagEmitter, Interpreter, Lexer, SourceMap, Token};
+use rme::{parser::Parser, Diag, DiagEmitter, Interpreter, Lexer, SourceMap, Token};
 use std::io::{stdin, stdout, Write};
 
 // FIXME: diagnostics should return an opaque object that can be used as an
@@ -8,18 +8,22 @@ fn main() {
     let mut source_map = SourceMap::new();
     let mut interpreter = Interpreter::new();
     loop {
-        get_stmt(&mut source_map, &mut interpreter)
+        let res = get_stmt(&mut source_map, &mut interpreter);
+
+        if let Err(diag) = res {
+            diag.emit(&source_map);
+        }
     }
 }
 
-fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) {
+fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result<(), Diag> {
     print!("> ");
     stdout().flush().unwrap();
     let mut input = String::new();
     stdin().read_line(&mut input).unwrap();
 
     if input.trim().is_empty() {
-        return;
+        return Ok(());
     }
 
     let offset = source_map.len();
@@ -28,19 +32,17 @@ fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) {
     let emitter = DiagEmitter::new(source_map);
 
     let lexer = Lexer::new(&input, &emitter, offset);
-    let Some(tokens) = lexer.collect::<Option<Vec<Token>>>() else {
-        return;
-    };
+    let tokens = lexer.collect::<Result<Vec<Token>, Diag>>()?;
 
-    let parser = Parser::new(tokens.into_iter(), &emitter);
-    let Some(ast) = parser.parse() else {
-        return;
-    };
+    let mut parser = Parser::new(tokens.into_iter(), &emitter);
+    let ast = parser.parse()?;
 
     let formatted = ast.to_string();
     if formatted != input.trim() {
         println!("formatted: `{formatted}`\n");
     }
 
-    interpreter.interpret_stmt(&emitter, ast);
+    interpreter.interpret_stmt(&emitter, ast)?;
+
+    Ok(())
 }
