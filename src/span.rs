@@ -69,6 +69,7 @@ impl Span {
     }
 }
 
+#[derive(Debug)]
 pub struct SourceMap {
     lines: Vec<String>,
 }
@@ -76,6 +77,10 @@ pub struct SourceMap {
 impl SourceMap {
     pub fn new() -> Self {
         Self { lines: Vec::new() }
+    }
+
+    pub fn from_lines(lines: Vec<String>) -> Self {
+        Self { lines }
     }
 
     pub fn push_line(&mut self, line: String) {
@@ -87,10 +92,11 @@ impl SourceMap {
         let mut pos = 0;
 
         for line in &self.lines {
-            if pos + line.len() > target {
+            let len = line.trim_end_matches('\n').len();
+            if pos + len > target {
                 return (line.as_str(), span.offset(-(pos as isize)));
             }
-            pos += line.len();
+            pos += len + 1;
         }
 
         let line = self.lines.last().unwrap();

@@ -1,5 +1,8 @@
 use crate::{DErr, Sp, Span};
 
+#[cfg(test)]
+mod tests;
+
 /// A spanned token/lexme.
 ///
 /// Is a spanned wrapper for [`TokenKind`], the "meat" of each token.

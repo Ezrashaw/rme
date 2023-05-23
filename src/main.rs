@@ -19,12 +19,12 @@ fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result
     let mut input = String::new();
     stdin().read_line(&mut input).unwrap();
 
-    if input.trim().is_empty() {
+    if input.trim_end().is_empty() {
         return Ok(());
     }
 
     let offset = source_map.len();
-    source_map.push_line(input.clone());
+    source_map.push_line(input.to_owned());
 
     let lexer = Lexer::new(&input, offset);
     let tokens = lexer.collect::<Result<Vec<Token>, DErr>>()?;

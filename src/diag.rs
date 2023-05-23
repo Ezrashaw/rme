@@ -1,5 +1,6 @@
 use std::{
     fmt::{Debug, Display},
+    io::{self, stdout, Write},
     iter,
 };
 
@@ -66,25 +67,30 @@ impl<L: DiagnosticLevel> Diag<L> {
         self.sub_diags.push(sub_diag);
     }
 
-    pub fn emit(mut self, source_map: &SourceMap) {
-        self.emit_(source_map, 0);
+    pub fn emit(self, source_map: &SourceMap) {
+        self.emit_to_write(&mut stdout(), source_map);
+    }
+
+    pub fn emit_to_write(mut self, write: &mut impl Write, source_map: &SourceMap) {
+        self.emit_(write, source_map, 0).unwrap();
 
         self.emitted = true;
         drop(self)
     }
 
-    fn emit_(&self, source_map: &SourceMap, indent: usize) {
+    fn emit_(&self, w: &mut impl Write, source_map: &SourceMap, indent: usize) -> io::Result<()> {
         let mut arrows = String::from_iter(iter::once('>').take(indent * 2));
         if !arrows.is_empty() {
             arrows.push(' ');
         }
 
-        println!(
+        writeln!(
+            w,
             "{arrows}\x1B[1;3;{}m{}\x1B[0m: {}",
             self.level.ansi_color_code(),
             self.level.name(),
             self.msg
-        );
+        )?;
 
         if let Some(span) = self.span {
             let (line, mut span) = source_map.get_span_lined(span);
@@ -94,13 +100,16 @@ impl<L: DiagnosticLevel> Diag<L> {
                 span = Span::new_single(span.start());
             }
 
-            print!("{arrows}\n{arrows}    {line}");
-            print!("{arrows}    {:width$}", "", width = span.start());
-            println!("\x1B[1;96m{:^^width$}\x1B[0m", "", width = span.len());
+            writeln!(w, "{arrows}")?;
+            writeln!(w, "{arrows}    {}", line.trim_end_matches('\n'))?;
+            write!(w, "{arrows}    {:width$}", "", width = span.start())?;
+            writeln!(w, "\x1B[1;96m{:^^width$}\x1B[0m", "", width = span.len())?;
         }
 
         for sub_diag in &self.sub_diags {
-            sub_diag.emit_(source_map, indent + 1);
+            sub_diag.emit_(w, source_map, indent + 1)?;
         }
+
+        Ok(())
     }
 }
