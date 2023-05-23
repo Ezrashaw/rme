@@ -101,4 +101,8 @@ impl SourceMap {
     pub fn len(&self) -> usize {
         self.lines.iter().fold(0usize, |len, line| len + line.len())
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
