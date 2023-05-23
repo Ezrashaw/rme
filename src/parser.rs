@@ -2,71 +2,65 @@ use std::iter::Peekable;
 
 use crate::{
     ast::{BinOperator, Expression, Statement, UnOperator, VarDef},
-    DiagEmitter, DiagLevel, Sp, Span, Token, TokenKind,
+    diag::{Diag, DiagEmitter},
+    Sp, Span, Token, TokenKind,
 };
 
-pub struct Parser<'a, I: Iterator<Item = Token>> {
+pub struct Parser<'em, I: Iterator<Item = Token>> {
     input: Peekable<I>,
-    emitter: &'a DiagEmitter<'a>,
+    emitter: &'em DiagEmitter<'em>,
 }
 
-impl<'a, I: Iterator<Item = Token>> Parser<'a, I> {
-    pub fn new(input: I, emitter: &'a DiagEmitter<'a>) -> Self {
+impl<'em, I: Iterator<Item = Token>> Parser<'em, I> {
+    pub fn new(input: I, emitter: &'em DiagEmitter<'em>) -> Self {
         Self {
             input: input.peekable(),
             emitter,
         }
     }
 
-    fn next_token(&mut self) -> Option<Token> {
-        self.input.next().or_else(|| {
+    fn next_token(&mut self) -> Result<Token, Diag> {
+        self.input.next().ok_or(
             self.emitter
-                .print_diag(DiagLevel::Error, "unexpected end of input", Span::EOF);
-
-            None
-        })
+                .create_err("unexpected end of input", Span::EOF),
+        )
     }
 
-    fn emit_expected_err(&self, expected: &str, found: Token) {
-        self.emitter.print_diag(
-            DiagLevel::Error,
+    fn create_expected_err(&self, expected: &str, found: Token) -> Diag {
+        self.emitter.create_err(
             format!("expected {expected} but found `{}`", found.inner()),
             found.span(),
-        );
+        )
     }
 
-    fn expect_token(&mut self, token: TokenKind, expected: &str) -> Option<Span> {
+    fn expect_token(&mut self, token: TokenKind, expected: &str) -> Result<Span, Diag> {
         let read = self.next_token()?;
         if *read == token {
-            Some(read.span())
+            Ok(read.span())
         } else {
-            self.emit_expected_err(expected, read);
-
-            None
+            Err(self.create_expected_err(expected, read))
         }
     }
 
-    pub fn parse(mut self) -> Option<Sp<Statement>> {
+    pub fn parse(&mut self) -> Result<Sp<Statement>, Diag> {
         let stmt = self.parse_stmt();
 
-        if stmt.is_some() {
+        if stmt.is_ok() {
             if let Some(tok) = self.input.next() {
-                self.emitter.print_diag(
-                    DiagLevel::Error,
-                    "input left over",
-                    Span::merge(tok.span(), Span::EOF),
-                );
-
-                return None;
+                return Err(self
+                    .emitter
+                    .create_err("input left over", Span::merge(tok.span(), Span::EOF)));
             }
         }
 
         stmt
     }
 
-    fn parse_stmt(&mut self) -> Option<Sp<Statement>> {
-        // FIXME: this is ok, but it returns without error for empty input
-        let tok = self.input.peek()?;
+    fn parse_stmt(&mut self) -> Result<Sp<Statement>, Diag> {
+        let tok = self
+            .input
+            .peek()
+            .ok_or(self.emitter.create_err("input was empty", Span::EOF))?;
 
         let stmt = if *tok.inner() == TokenKind::LetKeyword {
             let (var_def, span) = self.parse_var_def()?.into_parts();
@@ -78,10 +72,10 @@ impl<'a, I: Iterator<Item = Token>> Parser<'a, I> {
             Sp::new(Statement::Expr(expr), span)
         };
 
-        Some(stmt)
+        Ok(stmt)
     }
 
-    fn parse_var_def(&mut self) -> Option<Sp<VarDef>> {
+    fn parse_var_def(&mut self) -> Result<Sp<VarDef>, Diag> {
         let let_kw = self.expect_token(
             TokenKind::LetKeyword,
             "BUG: should always get let keyword here",
@@ -91,8 +85,7 @@ impl<'a, I: Iterator<Item = Token>> Parser<'a, I> {
         let variable = if let TokenKind::Identifier(id) = variable.inner() {
             Sp::new(id.clone(), variable.span())
         } else {
-            self.emit_expected_err("identifier", variable);
-            return None;
+            return Err(self.create_expected_err("identifier", variable));
         };
 
         let equals = self.expect_token(TokenKind::Equals, "`=`")?;
@@ -100,7 +93,7 @@ impl<'a, I: Iterator<Item = Token>> Parser<'a, I> {
 
         let span = Span::merge(let_kw, expr.span());
 
-        Some(Sp::new(
+        Ok(Sp::new(
             VarDef {
                 let_kw,
                 variable,
@@ -111,7 +104,7 @@ impl<'a, I: Iterator<Item = Token>> Parser<'a, I> {
         ))
     }
 
-    fn parse_expr(&mut self) -> Option<Sp<Expression>> {
+    fn parse_expr(&mut self) -> Result<Sp<Expression>, Diag> {
         let mut expr = self.parse_term()?;
 
         while let Some(next_token) = self.input.peek() {
@@ -131,10 +124,10 @@ impl<'a, I: Iterator<Item = Token>> Parser<'a, I> {
             expr = Sp::new(Expression::BinOp { lhs, rhs, op }, span);
         }
 
-        Some(expr)
+        Ok(expr)
     }
 
-    fn parse_term(&mut self) -> Option<Sp<Expression>> {
+    fn parse_term(&mut self) -> Result<Sp<Expression>, Diag> {
         let mut expr = self.parse_factor()?;
 
         while let Some(next_token) = self.input.peek() {
@@ -153,13 +146,13 @@ impl<'a, I: Iterator<Item = Token>> Parser<'a, I> {
             expr = Sp::new(Expression::BinOp { lhs, rhs, op }, span);
         }
 
-        Some(expr)
+        Ok(expr)
     }
 
-    fn parse_factor(&mut self) -> Option<Sp<Expression>> {
+    fn parse_factor(&mut self) -> Result<Sp<Expression>, Diag> {
         let token = self.next_token()?;
 
-        Some(match token.inner() {
+        Ok(match token.inner() {
             TokenKind::ParenOpen => {
                 let expr = self.parse_expr()?;
                 let close = self.expect_token(TokenKind::ParenClose, "closing parenthesis")?;
@@ -227,9 +220,7 @@ impl<'a, I: Iterator<Item = Token>> Parser<'a, I> {
                 }
             }
             _ => {
-                self.emit_expected_err("factor", token);
-
-                return None;
+                return Err(self.create_expected_err("factor", token));
             }
         })
     }

@@ -1,4 +1,5 @@
 pub mod ast;
+mod diag;
 mod interpret;
 mod lexer;
 pub mod parser;
@@ -6,6 +7,7 @@ mod span;
 
 use std::ops::Deref;
 
+pub use diag::*;
 pub use interpret::*;
 pub use lexer::*;
 pub use span::*;
