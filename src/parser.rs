@@ -154,26 +154,24 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 let expr = self.parse_expr()?;
                 let close = self.expect_token(TokenKind::ParenClose, "closing parenthesis")?;
 
-                Sp::new(
-                    Expression::Paren {
-                        open: token.span(),
-                        close,
-                        expr: expr.map_inner(Box::new),
-                    },
-                    Span::merge(token.span(), close),
-                )
+                let expr = Expression::Paren {
+                    open: token.span(),
+                    close,
+                    expr: expr.map_inner(Box::new),
+                };
+
+                Sp::new(expr, Span::merge(token.span(), close))
             }
             TokenKind::Minus => {
                 let factor = self.parse_factor()?;
                 let fspan = factor.span();
 
-                Sp::new(
-                    Expression::UnaryOp {
-                        expr: factor.map_inner(Box::new),
-                        op: Sp::new(UnOperator::Negation, token.span()),
-                    },
-                    Span::merge(token.span(), fspan),
-                )
+                let expr = Expression::UnaryOp {
+                    expr: factor.map_inner(Box::new),
+                    op: Sp::new(UnOperator::Negation, token.span()),
+                };
+
+                Sp::new(expr, Span::merge(token.span(), fspan))
             }
             TokenKind::Literal(val) => Sp::new(Expression::Literal(*val), token.span()),
             TokenKind::Identifier(var) => {
@@ -202,16 +200,14 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                     let close = self.next_token()?.span();
 
                     let span = Span::merge(token.span(), close);
+                    let expr = Expression::FunctionCall {
+                        name: Sp::new(var.clone(), token.span()),
+                        open,
+                        args,
+                        close,
+                    };
 
-                    Sp::new(
-                        Expression::FunctionCall {
-                            name: Sp::new(var.clone(), token.span()),
-                            open,
-                            args,
-                            close,
-                        },
-                        span,
-                    )
+                    Sp::new(expr, span)
                 } else {
                     Sp::new(Expression::Variable(var.clone()), token.span())
                 }

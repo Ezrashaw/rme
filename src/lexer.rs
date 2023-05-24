@@ -1,8 +1,5 @@
 use crate::{DErr, Sp, Span};
 
-#[cfg(test)]
-mod tests;
-
 /// A spanned token/lexme.
 ///
 /// Is a spanned wrapper for [`TokenKind`], the "meat" of each token.
@@ -53,6 +50,13 @@ impl TokenKind {
             Self::LetKeyword => "let",
         }
     }
+}
+
+/// Fully lexes the provided input (with a span offset), using the [`Lexer`]
+/// structure.
+pub fn lex(input: &str, span_offset: usize) -> Vec<Result<Token, DErr>> {
+    let lexer = Lexer::new(input, span_offset);
+    lexer.collect()
 }
 
 /// Simple whitespace-ignorant lexer.

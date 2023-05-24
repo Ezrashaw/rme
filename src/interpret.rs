@@ -124,25 +124,25 @@ impl Interpreter {
     }
 
     fn lookup_one_arg_function(name: &str) -> Option<fn(f32) -> f32> {
-        match name {
-            "abs" => Some(f32::abs),
-            "trunc" => Some(f32::trunc),
-            "to_radians" => Some(f32::to_radians),
-            "to_degrees" => Some(f32::to_degrees),
-            "tan" => Some(f32::tan),
-            "sqrt" => Some(f32::sqrt),
-            "sin" => Some(f32::sin),
-            "round" => Some(f32::round),
-            "log2" => Some(f32::log2),
-            "log10" => Some(f32::log10),
-            "cos" => Some(f32::cos),
-            "print" => Some(|x| {
+        Some(match name {
+            "abs" => f32::abs,
+            "trunc" => f32::trunc,
+            "to_radians" => f32::to_radians,
+            "to_degrees" => f32::to_degrees,
+            "tan" => f32::tan,
+            "sqrt" => f32::sqrt,
+            "sin" => f32::sin,
+            "round" => f32::round,
+            "log2" => f32::log2,
+            "log10" => f32::log10,
+            "cos" => f32::cos,
+            "print" => |x| {
                 println!("{x}");
 
                 // FIXME: with types, this returns (for example) the unit type
                 0.
-            }),
-            _ => None,
-        }
+            },
+            _ => return None,
+        })
     }
 }
