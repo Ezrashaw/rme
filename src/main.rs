@@ -24,23 +24,23 @@ fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result
     }
 
     let offset = source_map.len();
-    source_map.push_line(input.to_owned());
+    source_map.push_line(input.clone());
 
     let tokens = lex(&input, offset)
         .into_iter()
         .collect::<Result<Vec<Token>, DErr>>()?;
 
-    let mut parser = Parser::new(tokens.into_iter());
+    let parser = Parser::new(tokens.into_iter());
     let ast = parser.parse()?;
 
     let formatted = ast.to_string();
-    if formatted != input.trim() {
+    if formatted != input.trim_end() {
         println!("formatted: `{formatted}`");
     }
 
     let diag = interpreter.interpret_stmt(ast)?;
     if let Some(diag) = diag {
-        diag.emit(&source_map);
+        diag.emit(source_map);
     }
 
     Ok(())

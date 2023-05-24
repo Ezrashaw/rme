@@ -1,3 +1,5 @@
+#![feature(if_let_guard)]
+
 pub mod ast;
 mod diag;
 mod interpret;
@@ -18,6 +20,10 @@ pub struct Sp<T>(T, Span);
 impl<T> Sp<T> {
     pub fn new(val: T, span: Span) -> Self {
         Self(val, span)
+    }
+
+    pub fn new_boxed(val: T, span: Span) -> SpBox<T> {
+        Sp(Box::new(val), span)
     }
 
     pub fn inner(&self) -> &T {
