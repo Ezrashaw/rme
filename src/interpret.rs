@@ -5,6 +5,7 @@ use crate::{
     DErr, Sp, Span, SubDiag, SubDiagLevel,
 };
 
+#[derive(Default)]
 pub struct Interpreter {
     variables: HashMap<String, (Span, f32)>,
 }
@@ -23,7 +24,9 @@ impl Interpreter {
                 let is_print = expr.is_print_expr();
                 let val = self.interpret_expr(Sp::new(expr, span))?;
 
-                if !is_print {
+                if is_print {
+                    Ok(None)
+                } else {
                     let mut info_diag = SubDiag::new(
                         SubDiagLevel::Info,
                         format!("evalulated standalone expression to be `{val}`"),
@@ -36,8 +39,6 @@ impl Interpreter {
                     ));
 
                     Ok(Some(info_diag))
-                } else {
-                    Ok(None)
                 }
             }
             Statement::VarDef(var_stmt) => self.interpret_var_def(var_stmt).map(|_| None),
@@ -45,7 +46,7 @@ impl Interpreter {
     }
 
     fn interpret_var_def(&mut self, var_def: VarDef) -> Result<(), DErr> {
-        let (var_name, var_span) = var_def.variable.into_parts();
+        let (var_name, var_span) = var_def.name.into_parts();
         let var_value = self.variables.get(&var_name).copied();
         let value = self.interpret_expr(var_def.expr)?;
 
@@ -105,8 +106,8 @@ impl Interpreter {
                     .map(|(arg, _)| self.interpret_expr(arg.clone()))
                     .collect::<Result<Vec<_>, DErr>>()?;
 
-                let Some(function) = Self::lookup_one_arg_function(name.inner()) else {
-                    return Err(DErr::new_err(format!("unknown built-in function `{}`", name.inner()), name.span()));
+                let Some(function) = self.lookup_one_arg_function(&name) else {
+                    return Err(DErr::new_err(format!("unknown built-in function `{name}`"), name.span()));
                 };
 
                 let arg = evaled_args[0];
@@ -123,7 +124,7 @@ impl Interpreter {
             .ok_or_else(|| DErr::new_err(format!("unknown variable `{var}`"), span))
     }
 
-    fn lookup_one_arg_function(name: &str) -> Option<fn(f32) -> f32> {
+    fn lookup_one_arg_function(&self, name: &str) -> Option<fn(f32) -> f32> {
         Some(match name {
             "abs" => f32::abs,
             "trunc" => f32::trunc,

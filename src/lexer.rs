@@ -68,6 +68,7 @@ pub fn lex(input: &str, span_offset: usize) -> Vec<Result<Token, DErr>> {
 pub struct Lexer<'inp> {
     input: &'inp [u8],
     position: usize,
+    // FIXME: we don't really want this
     span_offset: usize,
 }
 

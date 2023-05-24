@@ -34,6 +34,10 @@ impl Span {
         self.end - self.start
     }
 
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn merge(s1: Self, s2: Self) -> Self {
         let start = cmp::min(s1.start, s2.start);
         let end = cmp::max(s1.end, s2.end);
@@ -69,7 +73,7 @@ impl Span {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SourceMap {
     lines: Vec<String>,
 }
@@ -83,7 +87,7 @@ impl SourceMap {
         Self { lines }
     }
 
-    pub fn from_input(input: String) -> Self {
+    pub fn from_input(input: &str) -> Self {
         Self::from_lines(input.lines().map(ToOwned::to_owned).collect())
     }
 

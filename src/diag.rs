@@ -6,9 +6,9 @@ use std::{
 
 use crate::{SourceMap, Span};
 
-use self::level::*;
-
 pub use level::{ErrorLevel, SubDiagLevel};
+
+use self::level::DiagnosticLevel;
 mod level;
 
 pub type DErr = Diag<ErrorLevel>;
@@ -26,12 +26,11 @@ pub struct Diag<L: DiagnosticLevel> {
 
 impl<L: DiagnosticLevel> Drop for Diag<L> {
     fn drop(&mut self) {
-        if !self.emitted {
-            panic!(
-                "dropped `Diag` {:?}",
-                (self.level.name(), &self.msg, self.span)
-            );
-        }
+        assert!(
+            self.emitted,
+            "dropped `Diag` {:?}",
+            (self.level.name(), &self.msg, self.span)
+        );
     }
 }
 
@@ -75,11 +74,11 @@ impl<L: DiagnosticLevel> Diag<L> {
         self.emit_(write, source_map, 0).unwrap();
 
         self.emitted = true;
-        drop(self)
+        drop(self);
     }
 
     fn emit_(&self, w: &mut impl Write, source_map: &SourceMap, indent: usize) -> io::Result<()> {
-        let mut arrows = String::from_iter(iter::once('>').take(indent * 2));
+        let mut arrows = iter::once('>').take(indent * 2).collect::<String>();
         if !arrows.is_empty() {
             arrows.push(' ');
         }
@@ -96,7 +95,7 @@ impl<L: DiagnosticLevel> Diag<L> {
             let (line, mut span) = source_map.get_span_lined(span);
             span = span.ensure_clamped(line.len() - 1);
 
-            if span.len() == 0 {
+            if span.is_empty() {
                 span = Span::new_single(span.start());
             }
 

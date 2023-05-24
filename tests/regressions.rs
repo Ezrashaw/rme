@@ -134,7 +134,7 @@ fn run_test<T: RegressionTests>(test_file: PathBuf, bless: bool) -> Result<(), S
 }
 
 const TEST_OPTIONS: TestOpts = TestOpts {
-    list: true,
+    list: false,
     filters: Vec::new(),
     filter_exact: false,
     force_run_in_process: false,

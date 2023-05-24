@@ -1,9 +1,11 @@
 use std::iter::Peekable;
 
 use crate::{
-    ast::{BinOperator, Expression, Statement, UnOperator, VarDef},
+    ast::{Statement, VarDef},
     DErr, Sp, Span, Token, TokenKind,
 };
+
+mod expr;
 
 pub struct Parser<I: Iterator<Item = Token>> {
     input: Peekable<I>,
@@ -16,7 +18,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         }
     }
 
-    fn next_token(&mut self) -> Result<Token, DErr> {
+    fn next(&mut self) -> Result<Token, DErr> {
         self.input
             .next()
             .ok_or_else(|| DErr::new_err("unexpected end of input", Span::EOF))
@@ -24,21 +26,41 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
     fn create_expected_err(&self, expected: &str, found: Token) -> DErr {
         DErr::new_err(
-            format!("expected {expected} but found `{}`", found.as_diag_str()),
+            format!("expected `{expected}` but found `{}`", found.as_diag_str()),
             found.span(),
         )
     }
 
-    fn expect_token(&mut self, token: TokenKind, expected: &str) -> Result<Span, DErr> {
-        let read = self.next_token()?;
-        if *read == token {
-            Ok(read.span())
+    fn expect_id(&mut self) -> Result<Sp<String>, DErr> {
+        let next = self.next()?;
+        if let TokenKind::Identifier(id) = next.inner() {
+            Ok(Sp::new(id.to_owned(), next.span()))
         } else {
-            Err(self.create_expected_err(expected, read))
+            Err(self.create_expected_err(TokenKind::Identifier(String::new()).as_diag_str(), next))
         }
     }
 
-    pub fn parse(&mut self) -> Result<Sp<Statement>, DErr> {
+    fn expect(&mut self, kind: TokenKind) -> Result<Span, DErr> {
+        let read = self.next()?;
+        if *read == kind {
+            Ok(read.span())
+        } else {
+            Err(self.create_expected_err(kind.as_diag_str(), read))
+        }
+    }
+
+    fn eat(&mut self, kind: TokenKind) -> Option<Span> {
+        let tok = self.input.peek()?;
+        if *tok.inner() == kind {
+            Some(self.input.next().unwrap().span())
+        } else {
+            None
+        }
+    }
+}
+
+impl<I: Iterator<Item = Token>> Parser<I> {
+    pub fn parse(mut self) -> Result<Sp<Statement>, DErr> {
         let stmt = self.parse_stmt();
 
         if stmt.is_ok() {
@@ -60,7 +82,9 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             .ok_or_else(|| DErr::new_err("input was empty", Span::EOF))?;
 
         let stmt = if *tok.inner() == TokenKind::LetKeyword {
-            let (var_def, span) = self.parse_var_def()?.into_parts();
+            // FIXME: inline once `TokenKind` becomes `Copy`
+            let let_kw = tok.span();
+            let (var_def, span) = self.parse_var_def(let_kw)?.into_parts();
 
             Sp::new(Statement::VarDef(var_def), span)
         } else {
@@ -72,149 +96,20 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         Ok(stmt)
     }
 
-    fn parse_var_def(&mut self) -> Result<Sp<VarDef>, DErr> {
-        let let_kw = self.expect_token(
-            TokenKind::LetKeyword,
-            "BUG: should always get let keyword here",
-        )?;
-
-        let variable = self.next_token()?;
-        let variable = if let TokenKind::Identifier(id) = variable.inner() {
-            Sp::new(id.clone(), variable.span())
-        } else {
-            return Err(self.create_expected_err("identifier", variable));
-        };
-
-        let equals = self.expect_token(TokenKind::Equals, "`=`")?;
+    fn parse_var_def(&mut self, let_kw: Span) -> Result<Sp<VarDef>, DErr> {
+        let name = self.expect_id()?;
+        let equals = self.expect(TokenKind::Equals)?;
         let expr = self.parse_expr()?;
 
         let span = Span::merge(let_kw, expr.span());
-
         Ok(Sp::new(
             VarDef {
                 let_kw,
-                variable,
+                name,
                 equals,
                 expr,
             },
             span,
         ))
-    }
-
-    fn parse_expr(&mut self) -> Result<Sp<Expression>, DErr> {
-        let mut expr = self.parse_term()?;
-
-        while let Some(next_token) = self.input.peek() {
-            let op = match **next_token {
-                TokenKind::Minus => BinOperator::Sub,
-                TokenKind::Plus => BinOperator::Add,
-                _ => break,
-            };
-            let next_token = self.next_token()?;
-
-            let rhs = self.parse_factor()?.map_inner(Box::new);
-
-            let lhs = expr.map_inner(Box::new);
-            let op = Sp::new(op, next_token.span());
-
-            let span = Span::merge(lhs.span(), rhs.span());
-            expr = Sp::new(Expression::BinOp { lhs, rhs, op }, span);
-        }
-
-        Ok(expr)
-    }
-
-    fn parse_term(&mut self) -> Result<Sp<Expression>, DErr> {
-        let mut expr = self.parse_factor()?;
-
-        while let Some(next_token) = self.input.peek() {
-            let op = match **next_token {
-                TokenKind::Star => BinOperator::Mul,
-                TokenKind::Slash => BinOperator::Div,
-                _ => break,
-            };
-            let next_token = self.next_token()?;
-
-            let rhs = self.parse_factor()?.map_inner(Box::new);
-            let lhs = expr.map_inner(Box::new);
-            let op = Sp::new(op, next_token.span());
-
-            let span = Span::merge(lhs.span(), rhs.span());
-            expr = Sp::new(Expression::BinOp { lhs, rhs, op }, span);
-        }
-
-        Ok(expr)
-    }
-
-    fn parse_factor(&mut self) -> Result<Sp<Expression>, DErr> {
-        let token = self.next_token()?;
-
-        Ok(match token.inner() {
-            TokenKind::ParenOpen => {
-                let expr = self.parse_expr()?;
-                let close = self.expect_token(TokenKind::ParenClose, "closing parenthesis")?;
-
-                let expr = Expression::Paren {
-                    open: token.span(),
-                    close,
-                    expr: expr.map_inner(Box::new),
-                };
-
-                Sp::new(expr, Span::merge(token.span(), close))
-            }
-            TokenKind::Minus => {
-                let factor = self.parse_factor()?;
-                let fspan = factor.span();
-
-                let expr = Expression::UnaryOp {
-                    expr: factor.map_inner(Box::new),
-                    op: Sp::new(UnOperator::Negation, token.span()),
-                };
-
-                Sp::new(expr, Span::merge(token.span(), fspan))
-            }
-            TokenKind::Literal(val) => Sp::new(Expression::Literal(*val), token.span()),
-            TokenKind::Identifier(var) => {
-                let maybe_fn_call = self.input.peek();
-                if Some(&TokenKind::ParenOpen) == maybe_fn_call.map(Sp::inner) {
-                    let open = self.input.next().unwrap().span();
-
-                    let mut args = Vec::new();
-                    while !matches!(
-                        self.input.peek().map(Sp::inner),
-                        Some(TokenKind::ParenClose)
-                    ) {
-                        let arg = self.parse_expr()?;
-                        let comma = if matches!(
-                            self.input.peek().map(Sp::inner),
-                            Some(TokenKind::ParenClose)
-                        ) {
-                            None
-                        } else {
-                            Some(self.expect_token(TokenKind::Comma, "`,`")?)
-                        };
-
-                        args.push((arg, comma));
-                    }
-
-                    let close = self.next_token()?.span();
-
-                    let span = Span::merge(token.span(), close);
-                    let expr = Expression::FunctionCall {
-                        name: Sp::new(var.clone(), token.span()),
-                        open,
-                        args,
-                        close,
-                    };
-
-                    Sp::new(expr, span)
-                } else {
-                    Sp::new(Expression::Variable(var.clone()), token.span())
-                }
-            }
-            _ => {
-                return Err(self.create_expected_err("factor", token));
-            }
-        })
     }
 }
