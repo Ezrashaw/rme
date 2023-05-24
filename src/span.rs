@@ -83,6 +83,10 @@ impl SourceMap {
         Self { lines }
     }
 
+    pub fn from_input(input: String) -> Self {
+        Self::from_lines(input.lines().map(ToOwned::to_owned).collect())
+    }
+
     pub fn push_line(&mut self, line: String) {
         self.lines.push(line);
     }

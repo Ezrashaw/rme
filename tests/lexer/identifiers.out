@@ -1,0 +1,19 @@
+Sp(Literal(2.0), Span { start: 0, end: 1 })
+Sp(LetKeyword, Span { start: 1, end: 4 })
+Sp(Literal(2.0), Span { start: 4, end: 5 })
+Sp(Identifier("hello"), Span { start: 7, end: 12 })
+Sp(Literal(2.0), Span { start: 12, end: 13 })
+Sp(Identifier("world"), Span { start: 13, end: 18 })
+Sp(Identifier("hello"), Span { start: 19, end: 24 })
+[1;3;31merror[0m: invalid start of token `_`
+
+    hello_world
+         [1;96m^[0m
+Sp(Identifier("world"), Span { start: 25, end: 30 })
+Sp(Identifier("hello"), Span { start: 32, end: 37 })
+[1;3;31merror[0m: invalid start of token `_`
+
+    hello_let
+         [1;96m^[0m
+Sp(LetKeyword, Span { start: 38, end: 41 })
+Sp(Identifier("hellolet"), Span { start: 42, end: 50 })
