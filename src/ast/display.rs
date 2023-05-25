@@ -1,14 +1,6 @@
 use std::fmt::{self, Display};
 
-use crate::Sp;
-
 use super::{BinOperator, Expression, Statement, UnOperator, VarDef};
-
-impl<T: Display> Display for Sp<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        (**self).fmt(f)
-    }
-}
 
 impl Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

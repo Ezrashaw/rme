@@ -1,9 +1,9 @@
-Sp(Plus, Span { start: 0, end: 1 })
-Sp(Minus, Span { start: 1, end: 2 })
-Sp(Equals, Span { start: 2, end: 3 })
-Sp(Slash, Span { start: 3, end: 4 })
-Sp(Star, Span { start: 4, end: 5 })
-Sp(Identifier("hello"), Span { start: 6, end: 11 })
+Sp(Plus, Span(0..1))
+Sp(Minus, Span(1..2))
+Sp(Equals, Span(2..3))
+Sp(Slash, Span(3..4))
+Sp(Star, Span(4..5))
+Sp(Identifier("hello"), Span(6..11))
 [1;3;31merror[0m: invalid start of token `'`
 
     '\;'"
@@ -24,15 +24,15 @@ Sp(Identifier("hello"), Span { start: 6, end: 11 })
 
     '\;'"
         [1;96m^[0m
-Sp(Identifier("hello"), Span { start: 19, end: 24 })
-Sp(LetKeyword, Span { start: 25, end: 28 })
-Sp(Plus, Span { start: 29, end: 30 })
-Sp(Minus, Span { start: 30, end: 31 })
+Sp(Identifier("hello"), Span(19..24))
+Sp(LetKeyword, Span(25..28))
+Sp(Plus, Span(29..30))
+Sp(Minus, Span(30..31))
 [1;3;31merror[0m: invalid float literal
 
     hello let +-.= .4. `
                 [1;96m^[0m
-Sp(Equals, Span { start: 32, end: 33 })
+Sp(Equals, Span(32..33))
 [1;3;31merror[0m: invalid float literal
 
     hello let +-.= .4. `

@@ -9,7 +9,7 @@ impl RegressionTests for LexerTests {
     const NAMESPACE: &'static str = "lexer";
 
     fn run_test(out: &mut impl io::Write, input: &str) -> io::Result<()> {
-        let sm = SourceMap::from_input(input);
+        let sm = SourceMap::from_input(input.to_owned());
 
         for tok in lex(input, 0) {
             match tok {

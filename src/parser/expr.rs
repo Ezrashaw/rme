@@ -52,7 +52,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 if let Some(open_paren) = self.eat(TokenKind::ParenOpen) {
                     self.parse_fn_call(Sp::new(id,tok_span), open_paren)?
                 } else {
-                    Sp::new(Expression::Variable(id.clone()), tok_span)
+                    Sp::new(Expression::Variable(id), tok_span)
                 }
             }
             _ => {
