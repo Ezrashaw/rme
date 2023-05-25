@@ -12,8 +12,7 @@ pub enum TokenKind {
     Identifier(String),
 
     // keywords
-    // FIXME: at some point, this should be split off into a `Keyword` struct
-    LetKeyword,
+    Keyword(Keyword),
 
     // misc punctuation
     Equals,
@@ -28,6 +27,7 @@ pub enum TokenKind {
     Minus,
     Star,
     Slash,
+    Bang,
 }
 
 impl TokenKind {
@@ -35,7 +35,7 @@ impl TokenKind {
     ///
     /// The caller should wrap the returned value in backticks (`` ` ` ``)
     /// before displaying in a diagnostic.
-    pub fn as_diag_str(&self) -> &'static str {
+    pub fn diag_str(&self) -> &'static str {
         match self {
             Self::Literal(_) => "<float literal>",
             Self::Identifier(_) => "<identifier>",
@@ -47,8 +47,43 @@ impl TokenKind {
             Self::Minus => "-",
             Self::Star => "*",
             Self::Slash => "/",
-            Self::LetKeyword => "let",
+            Self::Bang => "!",
+            Self::Keyword(kw) => kw.diag_str(),
         }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Keyword {
+    Let,
+    Fn,
+    True,
+    False,
+}
+
+impl Keyword {
+    /// Derived function for getting the "diagnostic-friendly" representation
+    /// of a token. See the docs on [`TokenKind::diag_str`].
+    pub fn diag_str(&self) -> &'static str {
+        match self {
+            Self::Let => "let",
+            Self::Fn => "fn",
+            Self::True => "true",
+            Self::False => "false",
+        }
+    }
+
+    /// Attempts to get a keyword from a given string.
+    ///
+    /// This function is used by the lexer.
+    pub fn from_str(val: &str) -> Option<Self> {
+        Some(match val {
+            "let" => Self::Let,
+            "fn" => Self::Fn,
+            "true" => Self::True,
+            "false" => Self::False,
+            _ => return None,
+        })
     }
 }
 
@@ -134,13 +169,15 @@ impl<'inp> Lexer<'inp> {
             b'-' => TokenKind::Minus,
             b'*' => TokenKind::Star,
             b'/' => TokenKind::Slash,
+            b'!' => TokenKind::Bang,
 
             // identifiers (and keywords)
             ch if ch.is_ascii_alphabetic() => {
                 let id = self.lex_complex(u8::is_ascii_alphabetic);
-                match id {
-                    "let" => TokenKind::LetKeyword,
-                    _ => TokenKind::Identifier(id.to_owned()),
+                if let Some(kw) = Keyword::from_str(id) {
+                    TokenKind::Keyword(kw)
+                } else {
+                    TokenKind::Identifier(id.to_owned())
                 }
             }
 

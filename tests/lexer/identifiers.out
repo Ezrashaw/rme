@@ -1,5 +1,5 @@
 Sp(Literal(2.0), Span(0..1))
-Sp(LetKeyword, Span(1..4))
+Sp(Keyword(Let), Span(1..4))
 Sp(Literal(2.0), Span(4..5))
 Sp(Identifier("hello"), Span(7..12))
 Sp(Literal(2.0), Span(12..13))
@@ -15,5 +15,9 @@ Sp(Identifier("hello"), Span(32..37))
 
     hello_let
          [1;96m^[0m
-Sp(LetKeyword, Span(38..41))
+Sp(Keyword(Let), Span(38..41))
 Sp(Identifier("hellolet"), Span(42..50))
+Sp(Keyword(Let), Span(52..55))
+Sp(Keyword(Fn), Span(56..58))
+Sp(Keyword(True), Span(59..63))
+Sp(Keyword(False), Span(64..69))

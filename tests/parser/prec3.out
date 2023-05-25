@@ -1,0 +1,127 @@
+formatted:              (7 + 6) / 72351 - -func(var! + 1) * 4
+formatted (precedence): (((7 + 6) / 72351) - ((-func(((var!) + 1))) * 4))
+
+Sp(
+    Expr(
+        BinOp {
+            lhs: Sp(
+                BinOp {
+                    lhs: Sp(
+                        Paren {
+                            open: Span(0..1),
+                            close: Span(6..7),
+                            expr: Sp(
+                                BinOp {
+                                    lhs: Sp(
+                                        Literal(
+                                            7.0,
+                                        ),
+                                        Span(1..2),
+                                    ),
+                                    rhs: Sp(
+                                        Literal(
+                                            6.0,
+                                        ),
+                                        Span(5..6),
+                                    ),
+                                    op: Sp(
+                                        Add,
+                                        Span(3..4),
+                                    ),
+                                },
+                                Span(1..6),
+                            ),
+                        },
+                        Span(0..7),
+                    ),
+                    rhs: Sp(
+                        Literal(
+                            72351.0,
+                        ),
+                        Span(10..15),
+                    ),
+                    op: Sp(
+                        Div,
+                        Span(8..9),
+                    ),
+                },
+                Span(0..15),
+            ),
+            rhs: Sp(
+                BinOp {
+                    lhs: Sp(
+                        UnaryOp {
+                            expr: Sp(
+                                FunctionCall {
+                                    name: Sp(
+                                        "func",
+                                        Span(19..23),
+                                    ),
+                                    args: [
+                                        (
+                                            Sp(
+                                                BinOp {
+                                                    lhs: Sp(
+                                                        UnaryOp {
+                                                            expr: Sp(
+                                                                Variable(
+                                                                    "var",
+                                                                ),
+                                                                Span(24..27),
+                                                            ),
+                                                            op: Sp(
+                                                                Factorial,
+                                                                Span(27..28),
+                                                            ),
+                                                        },
+                                                        Span(24..28),
+                                                    ),
+                                                    rhs: Sp(
+                                                        Literal(
+                                                            1.0,
+                                                        ),
+                                                        Span(31..32),
+                                                    ),
+                                                    op: Sp(
+                                                        Add,
+                                                        Span(29..30),
+                                                    ),
+                                                },
+                                                Span(24..32),
+                                            ),
+                                            None,
+                                        ),
+                                    ],
+                                    open: Span(23..24),
+                                    close: Span(32..33),
+                                },
+                                Span(19..33),
+                            ),
+                            op: Sp(
+                                Negation,
+                                Span(18..19),
+                            ),
+                        },
+                        Span(18..33),
+                    ),
+                    rhs: Sp(
+                        Literal(
+                            4.0,
+                        ),
+                        Span(36..37),
+                    ),
+                    op: Sp(
+                        Mul,
+                        Span(34..35),
+                    ),
+                },
+                Span(18..37),
+            ),
+            op: Sp(
+                Sub,
+                Span(16..17),
+            ),
+        },
+    ),
+    Span(0..37),
+)

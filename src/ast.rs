@@ -43,6 +43,33 @@ pub enum Expression {
 }
 
 impl Expression {
+    pub fn new_binop(
+        op: Sp<BinOperator>,
+        lhs: Sp<Expression>,
+        rhs: Sp<Expression>,
+    ) -> Sp<Expression> {
+        let span = Span::merge(lhs.span(), rhs.span());
+        Sp::new(
+            Self::BinOp {
+                lhs: lhs.map_inner(Box::new),
+                rhs: rhs.map_inner(Box::new),
+                op,
+            },
+            span,
+        )
+    }
+
+    pub fn new_unop(op: Sp<UnOperator>, expr: Sp<Expression>) -> Sp<Expression> {
+        let span = Span::merge(op.span(), expr.span());
+        Sp::new(
+            Self::UnaryOp {
+                expr: expr.map_inner(Box::new),
+                op,
+            },
+            span,
+        )
+    }
+
     pub fn is_print_expr(&self) -> bool {
         match self {
             Self::FunctionCall { name, .. } => **name == "print",
@@ -62,4 +89,5 @@ pub enum BinOperator {
 #[derive(Debug, Clone)]
 pub enum UnOperator {
     Negation,
+    Factorial,
 }

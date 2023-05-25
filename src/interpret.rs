@@ -96,6 +96,15 @@ impl Interpreter {
 
                 match op.inner() {
                     UnOperator::Negation => -expr,
+                    UnOperator::Factorial => {
+                        let expr = expr as u128;
+                        let mut val = 1u128;
+                        for i in 1..=expr {
+                            val = val.saturating_mul(i);
+                        }
+
+                        val as f32
+                    }
                 }
             }
             Expression::Literal(x) => x,
@@ -128,8 +137,8 @@ impl Interpreter {
         Some(match name {
             "abs" => f32::abs,
             "trunc" => f32::trunc,
-            "to_radians" => f32::to_radians,
-            "to_degrees" => f32::to_degrees,
+            "rad" | "to_radians" => f32::to_radians,
+            "deg" | "to_degrees" => f32::to_degrees,
             "tan" => f32::tan,
             "sqrt" => f32::sqrt,
             "sin" => f32::sin,
