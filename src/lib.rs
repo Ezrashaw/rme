@@ -7,7 +7,10 @@ mod lexer;
 pub mod parser;
 mod span;
 
-use std::ops::Deref;
+use std::{
+    fmt::{self, Display},
+    ops::Deref,
+};
 
 pub use diag::*;
 pub use interpret::*;
@@ -48,6 +51,12 @@ impl<T> Deref for Sp<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<T: Display> Display for Sp<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        (**self).fmt(f)
     }
 }
 

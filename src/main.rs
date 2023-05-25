@@ -1,4 +1,4 @@
-use rme::{lex, parser::Parser, DErr, Interpreter, SourceMap, Token};
+use rme::{parser::parse, DErr, Interpreter, SourceMap};
 use std::io::{stdin, stdout, Write};
 
 fn main() {
@@ -26,12 +26,7 @@ fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result
     let offset = source_map.len();
     source_map.push_line(input.clone());
 
-    let tokens = lex(&input, offset)
-        .into_iter()
-        .collect::<Result<Vec<Token>, DErr>>()?;
-
-    let parser = Parser::new(tokens.into_iter());
-    let ast = parser.parse()?;
+    let ast = parse(&input, offset)?;
 
     let formatted = ast.to_string();
     if formatted != input.trim_end() {

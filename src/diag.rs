@@ -93,7 +93,7 @@ impl<L: DiagnosticLevel> Diag<L> {
 
         if let Some(span) = self.span {
             let (line, mut span) = source_map.get_span_lined(span);
-            span = span.ensure_clamped(line.len() - 1);
+            span = span.ensure_clamped(line.len());
 
             if span.is_empty() {
                 span = Span::new_single(span.start());

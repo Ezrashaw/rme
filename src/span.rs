@@ -1,6 +1,9 @@
-use std::cmp;
+use std::{
+    cmp,
+    fmt::{self, Debug},
+};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {
     start: usize,
     end: usize,
@@ -45,6 +48,7 @@ impl Span {
         Self::new(start, end)
     }
 
+    // FIXME: remove this; it's gross
     pub fn ensure_clamped(mut self, max_len: usize) -> Self {
         if self.start == Self::END_POS {
             self.start = max_len;
@@ -73,47 +77,49 @@ impl Span {
     }
 }
 
+impl Debug for Span {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Span({}..{})", self.start, self.end)
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct SourceMap {
-    lines: Vec<String>,
+    input: String,
 }
 
 impl SourceMap {
     pub fn new() -> Self {
-        Self { lines: Vec::new() }
+        Self::from_input(String::new())
     }
 
-    pub fn from_lines(lines: Vec<String>) -> Self {
-        Self { lines }
-    }
-
-    pub fn from_input(input: &str) -> Self {
-        Self::from_lines(input.lines().map(ToOwned::to_owned).collect())
+    pub fn from_input(input: String) -> Self {
+        Self { input }
     }
 
     pub fn push_line(&mut self, line: String) {
-        self.lines.push(line);
+        self.input.push_str(&line);
     }
 
     pub fn get_span_lined(&self, span: Span) -> (&str, Span) {
         let target = span.start();
         let mut pos = 0;
 
-        for line in &self.lines {
+        for line in self.input.lines() {
             let len = line.trim_end_matches('\n').len();
             if pos + len > target {
-                return (line.as_str(), span.offset(-(pos as isize)));
+                return (line, span.offset(-(pos as isize)));
             }
             pos += len + 1;
         }
 
-        let line = self.lines.last().unwrap();
+        let line = self.input.lines().last().unwrap();
         let offset = pos - line.len();
         (line, span.offset(-(offset as isize)))
     }
 
     pub fn len(&self) -> usize {
-        self.lines.iter().fold(0usize, |len, line| len + line.len())
+        self.input.len()
     }
 
     pub fn is_empty(&self) -> bool {

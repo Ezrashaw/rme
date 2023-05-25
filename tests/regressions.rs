@@ -2,6 +2,7 @@
 extern crate test;
 
 use lexer::LexerTests;
+use parser::ParserTests;
 use std::{
     env,
     error::Error,
@@ -16,6 +17,7 @@ use test::{
 };
 
 mod lexer;
+mod parser;
 
 pub trait RegressionTests {
     const NAMESPACE: &'static str;
@@ -30,6 +32,7 @@ pub trait RegressionTests {
 fn main() -> ExitCode {
     let mut tests = Vec::new();
     generate_tests::<LexerTests>(&mut tests).unwrap();
+    generate_tests::<ParserTests>(&mut tests).unwrap();
 
     let success = test::run_tests_console(&TEST_OPTIONS, tests).unwrap();
 

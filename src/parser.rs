@@ -2,10 +2,19 @@ use std::iter::Peekable;
 
 use crate::{
     ast::{Statement, VarDef},
-    DErr, Sp, Span, Token, TokenKind,
+    lex, DErr, Sp, Span, Token, TokenKind,
 };
 
 mod expr;
+
+pub fn parse(input: &str, span_offset: usize) -> Result<Sp<Statement>, DErr> {
+    let tokens = lex(input, span_offset)
+        .into_iter()
+        .collect::<Result<Vec<Token>, DErr>>()?;
+
+    let parser = Parser::new(tokens.into_iter());
+    parser.parse()
+}
 
 pub struct Parser<I: Iterator<Item = Token>> {
     input: Peekable<I>,
@@ -34,7 +43,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     fn expect_id(&mut self) -> Result<Sp<String>, DErr> {
         let next = self.next()?;
         if let TokenKind::Identifier(id) = next.inner() {
-            Ok(Sp::new(id.to_owned(), next.span()))
+            Ok(Sp::new(id.clone(), next.span()))
         } else {
             Err(self.create_expected_err(TokenKind::Identifier(String::new()).as_diag_str(), next))
         }
