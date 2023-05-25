@@ -6,18 +6,40 @@ use crate::{
 
 impl<I: Iterator<Item = Token>> Parser<I> {
     pub(super) fn parse_expr(&mut self) -> Result<Sp<Expression>, DErr> {
-        self.parse_additive_exp()
+        self.parse_additive_expr()
     }
 
-    parse_binop!(parse_additive_exp, parse_term, [
+    parse_binop!(parse_additive_expr, parse_term, [
         TokenKind::Plus => BinOperator::Add,
         TokenKind::Minus => BinOperator::Sub
     ]);
 
-    parse_binop!(parse_term, parse_factor, [
+    parse_binop!(parse_term, parse_unary_prefix, [
         TokenKind::Star => BinOperator::Mul,
         TokenKind::Slash => BinOperator::Div
     ]);
+
+    fn parse_unary_prefix(&mut self) -> Result<Sp<Expression>, DErr> {
+        if let Some(op_span) = self.eat(TokenKind::Minus) {
+            let expr = self.parse_unary_prefix()?;
+            Ok(Expression::new_unop(
+                Sp::new(UnOperator::Negation, op_span),
+                expr,
+            ))
+        } else {
+            self.parse_unary_postfix()
+        }
+    }
+
+    fn parse_unary_postfix(&mut self) -> Result<Sp<Expression>, DErr> {
+        let mut expr = self.parse_factor()?;
+
+        while let Some(bang_span) = self.eat(TokenKind::Bang) {
+            expr = Expression::new_unop(Sp::new(UnOperator::Factorial, bang_span), expr)
+        }
+
+        Ok(expr)
+    }
 
     fn parse_factor(&mut self) -> Result<Sp<Expression>, DErr> {
         let (tok, tok_span) = self.next()?.into_parts();
@@ -35,22 +57,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
                 Sp::new(expr, Span::merge(tok_span, close))
             }
-            // unary operators
-            _ if let Some(op) = tok_to_un_op(&tok) => {
-                let factor = self.parse_factor()?;
-                let fspan = factor.span();
-
-                let expr = Expression::UnaryOp {
-                    expr: factor.map_inner(Box::new),
-                    op: Sp::new(op, tok_span),
-                };
-
-                Sp::new(expr, Span::merge(tok_span, fspan))
-            }
             TokenKind::Literal(val) => Sp::new(Expression::Literal(val), tok_span),
             TokenKind::Identifier(id) => {
                 if let Some(open_paren) = self.eat(TokenKind::ParenOpen) {
-                    self.parse_fn_call(Sp::new(id,tok_span), open_paren)?
+                    self.parse_fn_call(Sp::new(id, tok_span), open_paren)?
                 } else {
                     Sp::new(Expression::Variable(id), tok_span)
                 }
@@ -93,13 +103,6 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     }
 }
 
-fn tok_to_un_op(tok: &TokenKind) -> Option<UnOperator> {
-    Some(match tok {
-        TokenKind::Minus => UnOperator::Negation,
-        _ => return None,
-    })
-}
-
 macro_rules! parse_binop {
     ($name:ident, $lower:ident, [$($tok:pat => $op:expr),+]) => {
         fn $name(&mut self) -> Result<Sp<Expression>, DErr> {
@@ -112,11 +115,9 @@ macro_rules! parse_binop {
                 };
 
                 let op_span = self.next()?.span();
-                let op = Sp::new(op, op_span);
-                let rhs = self.$lower()?.map_inner(Box::new);
+                let rhs = self.$lower()?;
 
-                let span = Span::merge(expr.span(), rhs.span());
-                expr = Sp::new(Expression::BinOp { lhs: expr.map_inner(Box::new), rhs, op }, span);
+                expr = Expression::new_binop(Sp::new(op, op_span), expr, rhs);
             }
 
             Ok(expr)

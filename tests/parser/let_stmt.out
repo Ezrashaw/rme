@@ -1,0 +1,37 @@
+formatted:              let a = 1 + 1
+formatted (precedence): let a = (1 + 1)
+
+Sp(
+    VarDef(
+        VarDef {
+            let_kw: Span(0..3),
+            name: Sp(
+                "a",
+                Span(4..5),
+            ),
+            equals: Span(6..7),
+            expr: Sp(
+                BinOp {
+                    lhs: Sp(
+                        Literal(
+                            1.0,
+                        ),
+                        Span(8..9),
+                    ),
+                    rhs: Sp(
+                        Literal(
+                            1.0,
+                        ),
+                        Span(12..13),
+                    ),
+                    op: Sp(
+                        Add,
+                        Span(10..11),
+                    ),
+                },
+                Span(8..13),
+            ),
+        },
+    ),
+    Span(0..13),
+)

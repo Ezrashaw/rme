@@ -1,5 +1,3 @@
-#![feature(if_let_guard)]
-
 pub mod ast;
 mod diag;
 mod interpret;

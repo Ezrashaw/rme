@@ -2,7 +2,7 @@ use std::iter::Peekable;
 
 use crate::{
     ast::{Statement, VarDef},
-    lex, DErr, Sp, Span, Token, TokenKind,
+    lex, DErr, Keyword, Sp, Span, Token, TokenKind,
 };
 
 mod expr;
@@ -35,7 +35,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
     fn create_expected_err(&self, expected: &str, found: Token) -> DErr {
         DErr::new_err(
-            format!("expected `{expected}` but found `{}`", found.as_diag_str()),
+            format!("expected `{expected}` but found `{}`", found.diag_str()),
             found.span(),
         )
     }
@@ -45,7 +45,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         if let TokenKind::Identifier(id) = next.inner() {
             Ok(Sp::new(id.clone(), next.span()))
         } else {
-            Err(self.create_expected_err(TokenKind::Identifier(String::new()).as_diag_str(), next))
+            Err(self.create_expected_err(TokenKind::Identifier(String::new()).diag_str(), next))
         }
     }
 
@@ -54,7 +54,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         if *read == kind {
             Ok(read.span())
         } else {
-            Err(self.create_expected_err(kind.as_diag_str(), read))
+            Err(self.create_expected_err(kind.diag_str(), read))
         }
     }
 
@@ -85,24 +85,15 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     }
 
     fn parse_stmt(&mut self) -> Result<Sp<Statement>, DErr> {
-        let tok = self
-            .input
-            .peek()
-            .ok_or_else(|| DErr::new_err("input was empty", Span::EOF))?;
-
-        let stmt = if *tok.inner() == TokenKind::LetKeyword {
-            // FIXME: inline once `TokenKind` becomes `Copy`
-            let let_kw = tok.span();
+        let (stmt, sp) = if let Some(let_kw) = self.eat(TokenKind::Keyword(Keyword::Let)) {
             let (var_def, span) = self.parse_var_def(let_kw)?.into_parts();
-
-            Sp::new(Statement::VarDef(var_def), span)
+            (Statement::VarDef(var_def), span)
         } else {
             let (expr, span) = self.parse_expr()?.into_parts();
-
-            Sp::new(Statement::Expr(expr), span)
+            (Statement::Expr(expr), span)
         };
 
-        Ok(stmt)
+        Ok(Sp::new(stmt, sp))
     }
 
     fn parse_var_def(&mut self, let_kw: Span) -> Result<Sp<VarDef>, DErr> {
