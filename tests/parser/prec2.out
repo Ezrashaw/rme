@@ -1,6 +1,4 @@
-formatted:              --5!!
-formatted (precedence): (-(-((5!)!)))
-
+formatted: --5!!
 Sp(
     Expr(
         UnaryOp {
@@ -12,7 +10,9 @@ Sp(
                                 UnaryOp {
                                     expr: Sp(
                                         Literal(
-                                            5.0,
+                                            Float(
+                                                5.0,
+                                            ),
                                         ),
                                         Span(2..3),
                                     ),

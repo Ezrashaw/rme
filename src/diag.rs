@@ -1,7 +1,6 @@
 use std::{
     fmt::{Debug, Display},
     io::{self, stdout, Write},
-    iter,
 };
 
 use crate::{SourceMap, Span};
@@ -19,6 +18,7 @@ pub struct Diag<L: DiagnosticLevel> {
     level: L,
     msg: String,
     span: Option<Span>,
+    span_tag: Option<String>,
     sub_diags: Vec<Diag<SubDiagLevel>>,
 
     emitted: bool,
@@ -46,6 +46,7 @@ impl<L: DiagnosticLevel> Diag<L> {
             level,
             msg: msg.to_string(),
             span: Some(span),
+            span_tag: None,
             emitted: false,
             sub_diags: Vec::new(),
         }
@@ -56,6 +57,7 @@ impl<L: DiagnosticLevel> Diag<L> {
             level,
             msg: msg.to_string(),
             span: None,
+            span_tag: None,
             emitted: false,
             sub_diags: Vec::new(),
         }
@@ -66,49 +68,98 @@ impl<L: DiagnosticLevel> Diag<L> {
         self.sub_diags.push(sub_diag);
     }
 
+    pub fn span_tag(&mut self, tag: String) {
+        assert!(self.span.is_some());
+        self.span_tag = Some(tag);
+    }
+
     pub fn emit(self, source_map: &SourceMap) {
         self.emit_to_write(&mut stdout(), source_map);
     }
 
     pub fn emit_to_write(mut self, write: &mut impl Write, source_map: &SourceMap) {
-        self.emit_(write, source_map, 0).unwrap();
+        self.emit_(write, source_map, None).unwrap();
 
         self.emitted = true;
         drop(self);
     }
 
-    fn emit_(&self, w: &mut impl Write, source_map: &SourceMap, indent: usize) -> io::Result<()> {
-        let mut arrows = iter::once('>').take(indent * 2).collect::<String>();
-        if !arrows.is_empty() {
-            arrows.push(' ');
+    fn emit_(
+        &self,
+        w: &mut impl Write,
+        source_map: &SourceMap,
+        subd_indent: Option<usize>,
+    ) -> io::Result<()> {
+        if self.span.is_none() {
+            if let Some(indent) = subd_indent {
+                write!(w, "{:indent$}= ", "")?;
+            }
         }
 
         writeln!(
             w,
-            "{arrows}\x1B[1;3;{}m{}\x1B[0m: {}",
+            "\x1B[1;3;{}m{}\x1B[0m: {}",
             self.level.ansi_color_code(),
             self.level.name(),
             self.msg
         )?;
 
+        let mut subd_indent = subd_indent;
+
         if let Some(span) = self.span {
-            let (line, mut span) = source_map.get_span_lined(span);
+            let (line_num, line, mut span) = source_map.get_span_lined(span);
+            let line_num = line_num.to_string();
+            let margin = Some(line_num.len());
             span = span.ensure_clamped(line.len());
 
             if span.is_empty() {
                 span = Span::new_single(span.start());
             }
 
-            writeln!(w, "{arrows}")?;
-            writeln!(w, "{arrows}    {}", line.trim_end_matches('\n'))?;
-            write!(w, "{arrows}    {:width$}", "", width = span.start())?;
-            writeln!(w, "\x1B[1;96m{:^^width$}\x1B[0m", "", width = span.len())?;
+            write_line_start(w, margin, None)?;
+            writeln!(w)?;
+
+            write_line_start(w, margin, Some(&line_num))?;
+            writeln!(w, "{}", line.trim_end_matches('\n'))?;
+
+            write_line_start(w, margin, None)?;
+            write!(w, "{0:width$}", "", width = span.start())?;
+
+            write!(w, "{SPAN_TAG}{:^^width$}{RESET}", "", width = span.len())?;
+            if let Some(span_tag) = &self.span_tag {
+                // writeln!(w)?;
+                // write_line_start(w, margin, None)?;
+                // writeln!(
+                //     w,
+                //     "{SPAN_TAG}{0:width$}{span_tag}{RESET}",
+                //     "",
+                //     width = span.start()
+                // )?;
+                writeln!(w, " {SPAN_TAG}{span_tag}{RESET}")?;
+                write_line_start(w, margin, None)?;
+            }
+            writeln!(w)?;
+
+            subd_indent = Some(line_num.len() + 1);
         }
 
         for sub_diag in &self.sub_diags {
-            sub_diag.emit_(w, source_map, indent + 1)?;
+            sub_diag.emit_(w, source_map, subd_indent)?;
         }
 
         Ok(())
     }
+}
+
+const RESET: &str = "\x1B[0m";
+const SPAN_TAG: &str = "\x1B[1;96m";
+
+fn write_line_start(
+    w: &mut impl Write,
+    margin: Option<usize>,
+    line_num: Option<&str>,
+) -> io::Result<()> {
+    let margin = margin.unwrap_or_default();
+    let line_num = line_num.unwrap_or_default();
+    write!(w, "\x1B[38;5;244;1m{line_num:margin$} |{RESET} ")
 }

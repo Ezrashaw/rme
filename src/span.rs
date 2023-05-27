@@ -79,7 +79,11 @@ impl Span {
 
 impl Debug for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Span({}..{})", self.start, self.end)
+        if f.alternate() {
+            write!(f, "Span({}..{})", self.start, self.end)
+        } else {
+            write!(f, "{}..{}", self.start, self.end)
+        }
     }
 }
 
@@ -101,21 +105,21 @@ impl SourceMap {
         self.input.push_str(&line);
     }
 
-    pub fn get_span_lined(&self, span: Span) -> (&str, Span) {
+    pub fn get_span_lined(&self, span: Span) -> (usize, &str, Span) {
         let target = span.start();
         let mut pos = 0;
 
-        for line in self.input.lines() {
+        for (line_num, line) in self.input.lines().enumerate() {
             let len = line.trim_end_matches('\n').len();
             if pos + len > target {
-                return (line, span.offset(-(pos as isize)));
+                return (line_num + 1, line, span.offset(-(pos as isize)));
             }
             pos += len + 1;
         }
 
-        let line = self.input.lines().last().unwrap();
+        let (line_num, line) = self.input.lines().enumerate().last().unwrap();
         let offset = pos - line.len();
-        (line, span.offset(-(offset as isize)))
+        (line_num + 1, line, span.offset(-(offset as isize)))
     }
 
     pub fn len(&self) -> usize {

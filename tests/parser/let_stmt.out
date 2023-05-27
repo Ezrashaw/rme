@@ -1,6 +1,4 @@
-formatted:              let a = 1 + 1
-formatted (precedence): let a = (1 + 1)
-
+formatted: let a = 1 + 1
 Sp(
     VarDef(
         VarDef {
@@ -14,13 +12,17 @@ Sp(
                 BinOp {
                     lhs: Sp(
                         Literal(
-                            1.0,
+                            Float(
+                                1.0,
+                            ),
                         ),
                         Span(8..9),
                     ),
                     rhs: Sp(
                         Literal(
-                            1.0,
+                            Float(
+                                1.0,
+                            ),
                         ),
                         Span(12..13),
                     ),

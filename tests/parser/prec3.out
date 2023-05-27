@@ -1,6 +1,4 @@
-formatted:              (7 + 6) / 72351 - -func(var! + 1) * 4
-formatted (precedence): (((7 + 6) / 72351) - ((-func(((var!) + 1))) * 4))
-
+formatted: (7 + 6) / 72351 - -func(var! + 1) * 4
 Sp(
     Expr(
         BinOp {
@@ -14,13 +12,17 @@ Sp(
                                 BinOp {
                                     lhs: Sp(
                                         Literal(
-                                            7.0,
+                                            Float(
+                                                7.0,
+                                            ),
                                         ),
                                         Span(1..2),
                                     ),
                                     rhs: Sp(
                                         Literal(
-                                            6.0,
+                                            Float(
+                                                6.0,
+                                            ),
                                         ),
                                         Span(5..6),
                                     ),
@@ -36,7 +38,9 @@ Sp(
                     ),
                     rhs: Sp(
                         Literal(
-                            72351.0,
+                            Float(
+                                72351.0,
+                            ),
                         ),
                         Span(10..15),
                     ),
@@ -78,7 +82,9 @@ Sp(
                                                     ),
                                                     rhs: Sp(
                                                         Literal(
-                                                            1.0,
+                                                            Float(
+                                                                1.0,
+                                                            ),
                                                         ),
                                                         Span(31..32),
                                                     ),
@@ -106,7 +112,9 @@ Sp(
                     ),
                     rhs: Sp(
                         Literal(
-                            4.0,
+                            Float(
+                                4.0,
+                            ),
                         ),
                         Span(36..37),
                     ),

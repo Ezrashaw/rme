@@ -1,18 +1,20 @@
-formatted:              1 + 1
-formatted (precedence): (1 + 1)
-
+formatted: 1 + 1
 Sp(
     Expr(
         BinOp {
             lhs: Sp(
                 Literal(
-                    1.0,
+                    Float(
+                        1.0,
+                    ),
                 ),
                 Span(0..1),
             ),
             rhs: Sp(
                 Literal(
-                    1.0,
+                    Float(
+                        1.0,
+                    ),
                 ),
                 Span(5..6),
             ),

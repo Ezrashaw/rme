@@ -1,4 +1,4 @@
-use crate::{Sp, SpBox, Span};
+use crate::{lexer, Sp, SpBox, Span};
 
 mod display;
 
@@ -32,7 +32,7 @@ pub enum Expression {
         expr: SpBox<Expression>,
         op: Sp<UnOperator>,
     },
-    Literal(f32),
+    Literal(lexer::Literal),
     Variable(String),
     FunctionCall {
         name: Sp<String>,
@@ -51,8 +51,8 @@ impl Expression {
         let span = Span::merge(lhs.span(), rhs.span());
         Sp::new(
             Self::BinOp {
-                lhs: lhs.map_inner(Box::new),
-                rhs: rhs.map_inner(Box::new),
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
                 op,
             },
             span,
@@ -63,7 +63,7 @@ impl Expression {
         let span = Span::merge(op.span(), expr.span());
         Sp::new(
             Self::UnaryOp {
-                expr: expr.map_inner(Box::new),
+                expr: Box::new(expr),
                 op,
             },
             span,
@@ -72,13 +72,13 @@ impl Expression {
 
     pub fn is_print_expr(&self) -> bool {
         match self {
-            Self::FunctionCall { name, .. } => **name == "print",
+            Self::FunctionCall { name, .. } => name.inner() == "print",
             _ => false,
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum BinOperator {
     Add,
     Sub,
@@ -86,7 +86,7 @@ pub enum BinOperator {
     Div,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum UnOperator {
     Negation,
     Factorial,
