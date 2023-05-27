@@ -127,14 +127,6 @@ impl<L: DiagnosticLevel> Diag<L> {
 
             write!(w, "{SPAN_TAG}{:^^width$}{RESET}", "", width = span.len())?;
             if let Some(span_tag) = &self.span_tag {
-                // writeln!(w)?;
-                // write_line_start(w, margin, None)?;
-                // writeln!(
-                //     w,
-                //     "{SPAN_TAG}{0:width$}{span_tag}{RESET}",
-                //     "",
-                //     width = span.start()
-                // )?;
                 writeln!(w, " {SPAN_TAG}{span_tag}{RESET}")?;
                 write_line_start(w, margin, None)?;
             }

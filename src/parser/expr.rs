@@ -19,6 +19,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         TokenKind::Slash => BinOperator::Div
     ]);
 
+    // BUG: this doesn't give the correct span
     fn parse_unary_prefix(&mut self) -> Result<Sp<Expression>, DErr> {
         if let Some(op_span) = self.eat(TokenKind::Minus) {
             let expr = self.parse_unary_prefix()?;
@@ -31,6 +32,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         }
     }
 
+    // BUG: this doesn't give the correct span
     fn parse_unary_postfix(&mut self) -> Result<Sp<Expression>, DErr> {
         let mut expr = self.parse_factor()?;
 

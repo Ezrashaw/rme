@@ -1,14 +1,15 @@
 use crate::{lexer, Sp, SpBox, Span};
 
+pub mod debug;
 mod display;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Statement {
-    Expr(Expression),
-    VarDef(VarDef),
+    Expr(Sp<Expression>),
+    VarDef(Sp<VarDef>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct VarDef {
     pub let_kw: Span,
     pub name: Sp<String>,
@@ -16,21 +17,21 @@ pub struct VarDef {
     pub expr: Sp<Expression>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Expression {
     Paren {
         open: Span,
         close: Span,
         expr: SpBox<Expression>,
     },
-    BinOp {
+    BinaryOp {
+        op: Sp<BinOperator>,
         lhs: SpBox<Expression>,
         rhs: SpBox<Expression>,
-        op: Sp<BinOperator>,
     },
     UnaryOp {
-        expr: SpBox<Expression>,
         op: Sp<UnOperator>,
+        expr: SpBox<Expression>,
     },
     Literal(lexer::Literal),
     Variable(String),
@@ -50,10 +51,10 @@ impl Expression {
     ) -> Sp<Expression> {
         let span = Span::merge(lhs.span(), rhs.span());
         Sp::new(
-            Self::BinOp {
+            Self::BinaryOp {
+                op,
                 lhs: Box::new(lhs),
                 rhs: Box::new(rhs),
-                op,
             },
             span,
         )
@@ -63,8 +64,8 @@ impl Expression {
         let span = Span::merge(op.span(), expr.span());
         Sp::new(
             Self::UnaryOp {
-                expr: Box::new(expr),
                 op,
+                expr: Box::new(expr),
             },
             span,
         )

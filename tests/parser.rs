@@ -1,5 +1,9 @@
 use crate::RegressionTests;
-use rme::{parser::parse, SourceMap};
+use rme::{
+    ast::{self, debug::AstIndent},
+    parser::parse,
+    SourceMap,
+};
 use std::io;
 
 /// Regression tests for the parser ([`rme::Parser`]).
@@ -13,8 +17,8 @@ impl RegressionTests for ParserTests {
 
         match parse(input, 0) {
             Ok(ast) => {
-                writeln!(out, "formatted: {ast}")?;
-                writeln!(out, "{ast:#?}")?
+                writeln!(out, "formatted: {ast}\n")?;
+                ast::debug::dbg_stmt(&ast, out, AstIndent::new())?;
             }
             Err(err) => err.emit_to_write(out, &sm),
         }

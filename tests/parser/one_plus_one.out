@@ -1,28 +1,6 @@
-formatted: 1 + 1
-Sp(
-    Expr(
-        BinOp {
-            lhs: Sp(
-                Literal(
-                    Float(
-                        1.0,
-                    ),
-                ),
-                Span(0..1),
-            ),
-            rhs: Sp(
-                Literal(
-                    Float(
-                        1.0,
-                    ),
-                ),
-                Span(5..6),
-            ),
-            op: Sp(
-                Add,
-                Span(2..3),
-            ),
-        },
-    ),
-    Span(0..6),
-)
+formatted: -var
+
+Statement(Expression)@0..4
+| UnaryOp@1..4
+| | op: Negation@0..1
+| | expr: Variable("var")@1..4

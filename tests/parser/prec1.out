@@ -1,45 +1,10 @@
 formatted: 5 + 5 * 2
-Sp(
-    Expr(
-        BinOp {
-            lhs: Sp(
-                Literal(
-                    Float(
-                        5.0,
-                    ),
-                ),
-                Span(0..1),
-            ),
-            rhs: Sp(
-                BinOp {
-                    lhs: Sp(
-                        Literal(
-                            Float(
-                                5.0,
-                            ),
-                        ),
-                        Span(4..5),
-                    ),
-                    rhs: Sp(
-                        Literal(
-                            Float(
-                                2.0,
-                            ),
-                        ),
-                        Span(8..9),
-                    ),
-                    op: Sp(
-                        Mul,
-                        Span(6..7),
-                    ),
-                },
-                Span(4..9),
-            ),
-            op: Sp(
-                Add,
-                Span(2..3),
-            ),
-        },
-    ),
-    Span(0..9),
-)
+
+Statement(Expression)@0..9
+| BinaryOp@0..9
+| | op: Add@2..3
+| | lhs: Float(5.0)@0..1
+| | rhs: BinaryOp@4..9
+| | | op: Mul@6..7
+| | | lhs: Float(5.0)@4..5
+| | | rhs: Float(2.0)@8..9
