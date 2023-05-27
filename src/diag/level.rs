@@ -22,6 +22,7 @@ impl DiagnosticLevel for ErrorLevel {
 pub enum SubDiagLevel {
     Info,
     Help,
+    Note,
 }
 
 impl DiagnosticLevel for SubDiagLevel {
@@ -29,13 +30,15 @@ impl DiagnosticLevel for SubDiagLevel {
         match self {
             Self::Info => "info",
             Self::Help => "help",
+            Self::Note => "note",
         }
     }
 
     fn ansi_color_code(&self) -> &'static str {
         match self {
             Self::Info => "36",
-            Self::Help => "92",
+            Self::Help => "38;99",
+            Self::Note => "92",
         }
     }
 }

@@ -1,6 +1,0 @@
-formatted: -var
-
-Statement(Expression)@0..4
-| UnaryOp@1..4
-| | op: Negation@0..1
-| | expr: Variable("var")@1..4

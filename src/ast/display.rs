@@ -1,6 +1,16 @@
 use std::fmt::{self, Display};
 
-use super::{BinOperator, Expression, Statement, UnOperator, VarDef};
+use super::{Ast, BinOperator, Expression, Statement, UnOperator, VarDef};
+
+impl Display for Ast {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (stmt, _) in &self.statements {
+            writeln!(f, "{stmt};")?;
+        }
+
+        Ok(())
+    }
+}
 
 impl Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -24,8 +34,8 @@ impl Display for Expression {
             Self::Paren { expr, .. } => write!(f, "({expr})"),
             Self::BinaryOp { lhs, rhs, op } => write!(f, "{lhs} {} {rhs}", *op),
             Self::UnaryOp { expr, op } => match op.inner() {
-                UnOperator::Negation => write!(f, "{}{}", op, expr),
-                UnOperator::Factorial => write!(f, "{}{}", expr, op),
+                UnOperator::Negation => write!(f, "{op}{expr}"),
+                UnOperator::Factorial => write!(f, "{expr}{op}"),
             },
             Self::Literal(lit) => write!(f, "{lit}"),
             Self::Variable(var) => write!(f, "{var}"),

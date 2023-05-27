@@ -1,5 +1,7 @@
 #![feature(if_let_guard)]
 #![feature(let_chains)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::missing_panics_doc)]
 
 pub mod ast;
 mod diag;
@@ -24,7 +26,7 @@ impl<T> Sp<T> {
     }
 
     pub fn new_boxed(val: T, span: Span) -> SpBox<T> {
-        Box::new(Sp(val, span))
+        Box::new(Self(val, span))
     }
 
     pub fn inner(&self) -> &T {
@@ -61,4 +63,10 @@ impl<T: fmt::Debug> fmt::Debug for Sp<T> {
 }
 
 // FIXME: we probably want this the other way round; `Sp<Box<T>>`
-pub(crate) type SpBox<T> = Box<Sp<T>>;
+pub type SpBox<T> = Box<Sp<T>>;
+
+// impl<T> SpBox<T> {
+//     pub fn unbox(&self) -> Sp<&T> {
+//         Sp::new(self.inner(), self.span())
+//     }
+// }

@@ -13,7 +13,7 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn operator_error(op: Sp<String>, operands: Vec<(Sp<Type>, &str)>) -> DErr {
+    pub fn operator_error(op: Sp<String>, operands: Vec<(Sp<Self>, &str)>) -> DErr {
         let (span_tag, op_span) = op.into_parts();
 
         let mut err = Diag::new_err("type error", op_span);
@@ -70,13 +70,13 @@ impl Display for Value {
 impl Value {
     pub fn type_of(self) -> Type {
         match self {
-            Value::Float(_) => Type::Float,
-            Value::Bool(_) => Type::Bool,
-            Value::Unit => Type::Unit,
+            Self::Float(_) => Type::Float,
+            Self::Bool(_) => Type::Bool,
+            Self::Unit => Type::Unit,
         }
     }
 
-    pub fn eval_binop(lhs: Sp<Self>, rhs: Sp<Self>, op: Sp<BinOperator>) -> Result<Value, DErr> {
+    pub fn eval_binop(lhs: Sp<Self>, rhs: Sp<Self>, op: Sp<BinOperator>) -> Result<Self, DErr> {
         let val = match (lhs.inner(), rhs.inner()) {
             (Self::Float(lhs), Self::Float(rhs)) => {
                 let val = match op.inner() {
@@ -92,8 +92,8 @@ impl Value {
                 let err = Type::operator_error(
                     op.map_inner(|op| format!("`{op:?}` cannot be used on these types")),
                     vec![
-                        (lhs.map_inner(Value::type_of), "LHS"),
-                        (rhs.map_inner(Value::type_of), "RHS"),
+                        (lhs.map_inner(Self::type_of), "LHS"),
+                        (rhs.map_inner(Self::type_of), "RHS"),
                     ],
                 );
 
@@ -104,10 +104,10 @@ impl Value {
         Ok(val)
     }
 
-    pub fn eval_unop(expr: Sp<Self>, op: Sp<UnOperator>) -> Result<Value, DErr> {
+    pub fn eval_unop(expr: Sp<Self>, op: Sp<UnOperator>) -> Result<Self, DErr> {
         let val = match expr.inner() {
             Self::Float(expr) => match op.inner() {
-                UnOperator::Negation => Value::Float(-expr),
+                UnOperator::Negation => Self::Float(-expr),
                 UnOperator::Factorial => {
                     let expr = *expr as u128;
                     let mut val = 1u128;
@@ -115,11 +115,11 @@ impl Value {
                         val = val.saturating_mul(i);
                     }
 
-                    Value::Float(val as f32)
+                    Self::Float(val as f32)
                 }
             },
             _ => {
-                let expr_ty = expr.map_inner(Value::type_of);
+                let expr_ty = expr.map_inner(Self::type_of);
                 let err = Type::operator_error(
                     op.map_inner(|op| format!("`{op:?}` cannot be used on type `{}`", expr_ty)),
                     vec![(expr_ty, "operand")],

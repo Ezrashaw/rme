@@ -1,13 +1,13 @@
 use std::iter::Peekable;
 
 use crate::{
-    ast::{Statement, VarDef},
+    ast::{Ast, Statement, VarDef},
     DErr, Keyword, Lexer, Sp, Span, Token, TokenKind,
 };
 
 mod expr;
 
-pub fn parse(input: &str, span_offset: usize) -> Result<Sp<Statement>, DErr> {
+pub fn parse(input: &str, span_offset: usize) -> Result<Ast, DErr> {
     let tokens = Lexer::new(input, span_offset).collect::<Result<Vec<Token>, DErr>>()?;
 
     let parser = Parser::new(tokens.into_iter());
@@ -31,7 +31,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             .ok_or_else(|| DErr::new_err("unexpected end of input", Span::EOF))
     }
 
-    fn create_expected_err(&self, expected: &str, found: Token) -> DErr {
+    fn create_expected_err(expected: &str, found: Token) -> DErr {
         DErr::new_err(
             format!(
                 "expected `{expected}` but found `{}`",
@@ -46,7 +46,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         if let TokenKind::Identifier(id) = next.inner() {
             Ok(Sp::new(id.clone(), next.span()))
         } else {
-            Err(self.create_expected_err(TokenKind::Identifier(String::new()).diag_str(), next))
+            Err(Self::create_expected_err(
+                TokenKind::Identifier(String::new()).diag_str(),
+                next,
+            ))
         }
     }
 
@@ -55,7 +58,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         if *read.inner() == kind {
             Ok(read.span())
         } else {
-            Err(self.create_expected_err(kind.diag_str(), read))
+            Err(Self::create_expected_err(kind.diag_str(), read))
         }
     }
 
@@ -70,19 +73,29 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 }
 
 impl<I: Iterator<Item = Token>> Parser<I> {
-    pub fn parse(mut self) -> Result<Sp<Statement>, DErr> {
-        let stmt = self.parse_stmt();
+    pub fn parse(mut self) -> Result<Ast, DErr> {
+        let mut statements = Vec::new();
+        while self.input.peek().is_some() {
+            let stmt = self.parse_stmt()?;
+            let semi = self.expect(TokenKind::Semi)?;
 
-        if stmt.is_ok() {
-            if let Some(tok) = self.input.next() {
-                return Err(DErr::new_err(
-                    "input left over",
-                    Span::merge(tok.span(), Span::EOF),
-                ));
-            }
+            statements.push((stmt, semi));
         }
 
-        stmt
+        Ok(Ast { statements })
+    }
+
+    pub fn parse_single_stmt(mut self) -> Result<Sp<Statement>, DErr> {
+        let stmt = self.parse_stmt()?;
+
+        if let Some(tok) = self.input.next() {
+            return Err(DErr::new_err(
+                "input left over",
+                Span::merge(tok.span(), Span::EOF),
+            ));
+        }
+
+        Ok(stmt)
     }
 
     fn parse_stmt(&mut self) -> Result<Sp<Statement>, DErr> {

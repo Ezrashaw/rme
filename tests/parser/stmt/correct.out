@@ -1,0 +1,10 @@
+1 + 1;
+
+---AST Statement (semi: 5..6) #0---
+Statement(Expression)@0..5
+| BinaryOp@0..5
+| | op: Add@2..3
+| | lhs: Float(1.0)@0..1
+| | rhs: Float(1.0)@4..5
+-------
+

@@ -1,11 +1,14 @@
-formatted: let a = 1 + 1
+let x = 1 + 1;
 
+---AST Statement (semi: 13..14) #0---
 Statement(VarDef)@0..13
 | VarDef@0..13
 | | let_kw: 0..3
-| | name: "a"@4..5
+| | name: "x"@4..5
 | | equals: 6..7
 | | expr: BinaryOp@8..13
 | | | op: Add@10..11
 | | | lhs: Float(1.0)@8..9
 | | | rhs: Float(1.0)@12..13
+-------
+

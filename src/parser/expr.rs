@@ -37,7 +37,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         let mut expr = self.parse_factor()?;
 
         while let Some(bang_span) = self.eat(TokenKind::Bang) {
-            expr = Expression::new_unop(Sp::new(UnOperator::Factorial, bang_span), expr)
+            expr = Expression::new_unop(Sp::new(UnOperator::Factorial, bang_span), expr);
         }
 
         Ok(expr)
@@ -68,7 +68,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 }
             }
             _ => {
-                return Err(self.create_expected_err("factor", Token::new(tok, tok_span)));
+                return Err(Self::create_expected_err(
+                    "factor",
+                    Token::new(tok, tok_span),
+                ));
             }
         })
     }
