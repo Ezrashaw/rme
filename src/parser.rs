@@ -87,11 +87,13 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
     fn parse_stmt(&mut self) -> Result<Sp<Statement>, DErr> {
         let (stmt, sp) = if let Some(let_kw) = self.eat(TokenKind::Keyword(Keyword::Let)) {
-            let (var_def, span) = self.parse_var_def(let_kw)?.into_parts();
-            (Statement::VarDef(var_def), span)
+            let var_def = self.parse_var_def(let_kw)?;
+            let sp = var_def.span();
+            (Statement::VarDef(var_def), sp)
         } else {
-            let (expr, span) = self.parse_expr()?.into_parts();
-            (Statement::Expr(expr), span)
+            let expr = self.parse_expr()?;
+            let sp = expr.span();
+            (Statement::Expr(expr), sp)
         };
 
         Ok(Sp::new(stmt, sp))

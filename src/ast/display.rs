@@ -22,7 +22,7 @@ impl Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Paren { expr, .. } => write!(f, "({expr})"),
-            Self::BinOp { lhs, rhs, op } => write!(f, "{lhs} {} {rhs}", *op),
+            Self::BinaryOp { lhs, rhs, op } => write!(f, "{lhs} {} {rhs}", *op),
             Self::UnaryOp { expr, op } => match op.inner() {
                 UnOperator::Negation => write!(f, "{}{}", op, expr),
                 UnOperator::Factorial => write!(f, "{}{}", expr, op),

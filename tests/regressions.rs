@@ -104,7 +104,7 @@ fn run_test<T: RegressionTests>(test_file: PathBuf, bless: bool) -> Result<(), S
     let current_output = fs::read(&out_file).unwrap();
 
     if output != current_output {
-        let actual_file = out_file.with_extension("lexed.actual");
+        let actual_file = out_file.with_extension("actual");
         fs::write(&actual_file, output).unwrap();
 
         let diff = Command::new("diff")

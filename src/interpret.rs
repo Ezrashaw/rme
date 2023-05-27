@@ -22,14 +22,16 @@ impl Interpreter {
     }
 
     pub fn interpret_stmt(&mut self, stmt: Sp<Statement>) -> Result<Value, DErr> {
-        let (stmt, span) = stmt.into_parts();
+        let (stmt, _) = stmt.into_parts();
         match stmt {
             Statement::Expr(expr) => {
                 // let is_print = expr.is_print_expr();
-                let val = self.interpret_expr(&Sp::new(expr, span))?;
+                let val = self.interpret_expr(&expr)?;
                 Ok(val)
             }
-            Statement::VarDef(var_stmt) => self.interpret_var_def(var_stmt).map(|_| Value::Unit),
+            Statement::VarDef(var_stmt) => self
+                .interpret_var_def(var_stmt.into_parts().0)
+                .map(|_| Value::Unit),
         }
     }
 
@@ -68,7 +70,7 @@ impl Interpreter {
         let (expr, span) = expr.as_parts();
         Ok(match expr {
             Expression::Paren { expr, .. } => self.interpret_expr(expr)?,
-            Expression::BinOp { lhs, rhs, op } => {
+            Expression::BinaryOp { lhs, rhs, op } => {
                 let lhv = self.interpret_expr(lhs)?;
                 let rhv = self.interpret_expr(rhs)?;
 

@@ -1,39 +1,11 @@
 formatted: let a = 1 + 1
-Sp(
-    VarDef(
-        VarDef {
-            let_kw: Span(0..3),
-            name: Sp(
-                "a",
-                Span(4..5),
-            ),
-            equals: Span(6..7),
-            expr: Sp(
-                BinOp {
-                    lhs: Sp(
-                        Literal(
-                            Float(
-                                1.0,
-                            ),
-                        ),
-                        Span(8..9),
-                    ),
-                    rhs: Sp(
-                        Literal(
-                            Float(
-                                1.0,
-                            ),
-                        ),
-                        Span(12..13),
-                    ),
-                    op: Sp(
-                        Add,
-                        Span(10..11),
-                    ),
-                },
-                Span(8..13),
-            ),
-        },
-    ),
-    Span(0..13),
-)
+
+Statement(VarDef)@0..13
+| VarDef@0..13
+| | let_kw: 0..3
+| | name: "a"@4..5
+| | equals: 6..7
+| | expr: BinaryOp@8..13
+| | | op: Add@10..11
+| | | lhs: Float(1.0)@8..9
+| | | rhs: Float(1.0)@12..13

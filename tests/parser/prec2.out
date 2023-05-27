@@ -1,47 +1,12 @@
 formatted: --5!!
-Sp(
-    Expr(
-        UnaryOp {
-            expr: Sp(
-                UnaryOp {
-                    expr: Sp(
-                        UnaryOp {
-                            expr: Sp(
-                                UnaryOp {
-                                    expr: Sp(
-                                        Literal(
-                                            Float(
-                                                5.0,
-                                            ),
-                                        ),
-                                        Span(2..3),
-                                    ),
-                                    op: Sp(
-                                        Factorial,
-                                        Span(3..4),
-                                    ),
-                                },
-                                Span(2..4),
-                            ),
-                            op: Sp(
-                                Factorial,
-                                Span(4..5),
-                            ),
-                        },
-                        Span(2..5),
-                    ),
-                    op: Sp(
-                        Negation,
-                        Span(1..2),
-                    ),
-                },
-                Span(1..5),
-            ),
-            op: Sp(
-                Negation,
-                Span(0..1),
-            ),
-        },
-    ),
-    Span(0..5),
-)
+
+Statement(Expression)@0..5
+| UnaryOp@1..5
+| | op: Negation@0..1
+| | expr: UnaryOp@2..5
+| | | op: Negation@1..2
+| | | expr: UnaryOp@2..4
+| | | | op: Factorial@4..5
+| | | | expr: UnaryOp@2..3
+| | | | | op: Factorial@3..4
+| | | | | expr: Float(5.0)@2..3

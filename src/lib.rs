@@ -15,7 +15,7 @@ pub use interpret::*;
 pub use lexer::*;
 pub use span::*;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Sp<T>(T, Span);
 
 impl<T> Sp<T> {
@@ -51,6 +51,12 @@ impl<T> Sp<T> {
 impl<T: Display> Display for Sp<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.inner().fmt(f)
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for Sp<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}@{:?}", self.inner(), self.span())
     }
 }
 
