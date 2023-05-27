@@ -52,12 +52,12 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 let expr = Expression::Paren {
                     open: tok_span,
                     close,
-                    expr: expr.map_inner(Box::new),
+                    expr: Box::new(expr),
                 };
 
                 Sp::new(expr, Span::merge(tok_span, close))
             }
-            TokenKind::Literal(val) => Sp::new(Expression::Literal(val), tok_span),
+            TokenKind::Literal(lit) => Sp::new(Expression::Literal(lit), tok_span),
             TokenKind::Identifier(id) => {
                 if let Some(open_paren) = self.eat(TokenKind::ParenOpen) {
                     self.parse_fn_call(Sp::new(id, tok_span), open_paren)?
@@ -109,7 +109,7 @@ macro_rules! parse_binop {
             let mut expr = self.$lower()?;
 
             while let Some(peek) = self.input.peek() {
-                let op = match **peek {
+                let op = match *peek.inner() {
                     $($tok => $op,)*
                     _ => break,
                 };

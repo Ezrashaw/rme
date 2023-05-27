@@ -13,7 +13,7 @@ impl RegressionTests for LexerTests {
 
         for tok in lex(input, 0) {
             match tok {
-                Ok(tok) => writeln!(out, "{tok:?}")?,
+                Ok(tok) => writeln!(out, "{tok}")?,
                 Err(err) => err.emit_to_write(out, &sm),
             }
         }

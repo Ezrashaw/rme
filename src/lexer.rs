@@ -1,3 +1,5 @@
+use std::{fmt, str::FromStr};
+
 use crate::{DErr, Sp, Span};
 
 /// A spanned token/lexme.
@@ -8,7 +10,7 @@ pub type Token = Sp<TokenKind>;
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenKind {
     // "complex" tokens
-    Literal(f32),
+    Literal(Literal),
     Identifier(String),
 
     // keywords
@@ -53,12 +55,46 @@ impl TokenKind {
     }
 }
 
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}@{:?}", self.inner(), self.span())
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Literal {
+    Float(f32),
+    Bool(bool),
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Literal::Float(x) => write!(f, "{x}"),
+            Literal::Bool(x) => write!(f, "{x}"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Keyword {
     Let,
     Fn,
-    True,
-    False,
+}
+
+impl FromStr for Keyword {
+    type Err = ();
+
+    /// Attempts to get a keyword from a given string.
+    ///
+    /// This function is used by the lexer.
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "let" => Self::Let,
+            "fn" => Self::Fn,
+            _ => return Err(()),
+        })
+    }
 }
 
 impl Keyword {
@@ -68,22 +104,7 @@ impl Keyword {
         match self {
             Self::Let => "let",
             Self::Fn => "fn",
-            Self::True => "true",
-            Self::False => "false",
         }
-    }
-
-    /// Attempts to get a keyword from a given string.
-    ///
-    /// This function is used by the lexer.
-    pub fn from_str(val: &str) -> Option<Self> {
-        Some(match val {
-            "let" => Self::Let,
-            "fn" => Self::Fn,
-            "true" => Self::True,
-            "false" => Self::False,
-            _ => return None,
-        })
     }
 }
 
@@ -171,13 +192,19 @@ impl<'inp> Lexer<'inp> {
             b'/' => TokenKind::Slash,
             b'!' => TokenKind::Bang,
 
-            // identifiers (and keywords)
-            ch if ch.is_ascii_alphabetic() => {
-                let id = self.lex_complex(u8::is_ascii_alphabetic);
-                if let Some(kw) = Keyword::from_str(id) {
-                    TokenKind::Keyword(kw)
-                } else {
-                    TokenKind::Identifier(id.to_owned())
+            // identifiers (and keywords/booleans)
+            ch if ch.is_ascii_alphabetic() || ch == b'_' => {
+                let id = self.lex_complex(|ch| {
+                    ch.is_ascii_alphabetic() || ch.is_ascii_digit() || *ch == b'_'
+                });
+
+                match id {
+                    "true" => TokenKind::Literal(Literal::Bool(true)),
+                    "false" => TokenKind::Literal(Literal::Bool(false)),
+                    _ if let Ok(kw) = Keyword::from_str(id) => {
+                        TokenKind::Keyword(kw)
+                    }
+                    _ => TokenKind::Identifier(id.to_owned())
                 }
             }
 
@@ -186,7 +213,7 @@ impl<'inp> Lexer<'inp> {
                 let literal = self.lex_complex(|&ch| ch.is_ascii_digit() || ch == b'.');
 
                 if let Ok(num) = literal.parse::<f32>() {
-                    TokenKind::Literal(num)
+                    TokenKind::Literal(Literal::Float(num))
                 } else {
                     return Some(Err(DErr::new_err(
                         "invalid float literal",
@@ -216,12 +243,7 @@ impl<'inp> Lexer<'inp> {
     /// end of this slice.
     fn lex_complex(&mut self, cont: for<'a> fn(&'a u8) -> bool) -> &str {
         let start_pos = self.position - 1;
-        while let Some(ch) = self.peek_char() {
-            // FIXME: use let chains instead
-            if !cont(&ch) {
-                break;
-            }
-
+        while let Some(ch) = self.peek_char() && cont(&ch) {
             self.position += 1;
         }
 

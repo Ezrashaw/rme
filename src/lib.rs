@@ -1,3 +1,6 @@
+#![feature(if_let_guard)]
+#![feature(let_chains)]
+
 pub mod ast;
 mod diag;
 mod interpret;
@@ -5,10 +8,7 @@ mod lexer;
 pub mod parser;
 mod span;
 
-use std::{
-    fmt::{self, Display},
-    ops::Deref,
-};
+use std::fmt::{self, Display};
 
 pub use diag::*;
 pub use interpret::*;
@@ -24,7 +24,7 @@ impl<T> Sp<T> {
     }
 
     pub fn new_boxed(val: T, span: Span) -> SpBox<T> {
-        Sp(Box::new(val), span)
+        Box::new(Sp(val, span))
     }
 
     pub fn inner(&self) -> &T {
@@ -42,26 +42,17 @@ impl<T> Sp<T> {
     pub fn into_parts(self) -> (T, Span) {
         (self.0, self.1)
     }
-}
 
-impl<T> Deref for Sp<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    pub fn as_parts(&self) -> (&T, Span) {
+        (&self.0, self.1)
     }
 }
 
 impl<T: Display> Display for Sp<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        (**self).fmt(f)
+        self.inner().fmt(f)
     }
 }
 
-pub(crate) type SpBox<T> = Sp<Box<T>>;
-
-impl<T> SpBox<T> {
-    pub fn unbox(self) -> Sp<T> {
-        Sp::new(*self.0, self.1)
-    }
-}
+// FIXME: we probably want this the other way round; `Sp<Box<T>>`
+pub(crate) type SpBox<T> = Box<Sp<T>>;

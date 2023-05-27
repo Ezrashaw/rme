@@ -1,23 +1,13 @@
-Sp(Literal(2.0), Span(0..1))
-Sp(Keyword(Let), Span(1..4))
-Sp(Literal(2.0), Span(4..5))
-Sp(Identifier("hello"), Span(7..12))
-Sp(Literal(2.0), Span(12..13))
-Sp(Identifier("world"), Span(13..18))
-Sp(Identifier("hello"), Span(19..24))
-[1;3;31merror[0m: invalid start of token `_`
-
-    hello_world
-         [1;96m^[0m
-Sp(Identifier("world"), Span(25..30))
-Sp(Identifier("hello"), Span(32..37))
-[1;3;31merror[0m: invalid start of token `_`
-
-    hello_let
-         [1;96m^[0m
-Sp(Keyword(Let), Span(38..41))
-Sp(Identifier("hellolet"), Span(42..50))
-Sp(Keyword(Let), Span(52..55))
-Sp(Keyword(Fn), Span(56..58))
-Sp(Keyword(True), Span(59..63))
-Sp(Keyword(False), Span(64..69))
+Keyword(Let)@0..3
+Keyword(Fn)@4..6
+Literal(Bool(true))@7..11
+Literal(Bool(false))@12..17
+Identifier("lEt")@18..21
+Identifier("fN")@22..24
+Identifier("hello")@26..31
+Identifier("world")@32..37
+Identifier("_____")@38..43
+Identifier("_i__d__")@44..51
+Identifier("id2")@52..55
+Literal(Float(2.0))@56..57
+Identifier("id")@57..59

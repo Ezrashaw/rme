@@ -13,8 +13,7 @@ impl RegressionTests for ParserTests {
 
         match parse(input, 0) {
             Ok(ast) => {
-                writeln!(out, "formatted:              {ast}")?;
-                writeln!(out, "formatted (precedence): {ast:#}\n")?;
+                writeln!(out, "formatted: {ast}")?;
                 writeln!(out, "{ast:#?}")?
             }
             Err(err) => err.emit_to_write(out, &sm),

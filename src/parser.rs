@@ -2,15 +2,13 @@ use std::iter::Peekable;
 
 use crate::{
     ast::{Statement, VarDef},
-    lex, DErr, Keyword, Sp, Span, Token, TokenKind,
+    DErr, Keyword, Lexer, Sp, Span, Token, TokenKind,
 };
 
 mod expr;
 
 pub fn parse(input: &str, span_offset: usize) -> Result<Sp<Statement>, DErr> {
-    let tokens = lex(input, span_offset)
-        .into_iter()
-        .collect::<Result<Vec<Token>, DErr>>()?;
+    let tokens = Lexer::new(input, span_offset).collect::<Result<Vec<Token>, DErr>>()?;
 
     let parser = Parser::new(tokens.into_iter());
     parser.parse()
@@ -35,7 +33,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
     fn create_expected_err(&self, expected: &str, found: Token) -> DErr {
         DErr::new_err(
-            format!("expected `{expected}` but found `{}`", found.diag_str()),
+            format!(
+                "expected `{expected}` but found `{}`",
+                found.inner().diag_str()
+            ),
             found.span(),
         )
     }
@@ -51,7 +52,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
     fn expect(&mut self, kind: TokenKind) -> Result<Span, DErr> {
         let read = self.next()?;
-        if *read == kind {
+        if *read.inner() == kind {
             Ok(read.span())
         } else {
             Err(self.create_expected_err(kind.diag_str(), read))

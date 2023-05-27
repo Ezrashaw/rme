@@ -1,7 +1,10 @@
 /* common types */
-<number>     ::= [0-9]+
+<digit>      ::= [0-9]
+<number>     ::= (<digit> | ".")+
 <letter>     ::= [a-z] | [A-Z]
-<identifier> ::= <letter>+
+<identifier> ::= <letter> (<letter> | <digit>)*
+
+<literal>    ::= <number> | "true" | "false"
 
 /* the root program node */
 <statement> ::= <var_def> | <expression>
@@ -14,5 +17,7 @@
 <term>                ::= <factor> (("*" | "/") <factor>)*
 <unary_prefix>        ::= "-" <unary_prefix> | <unary_postfix>
 <unary_postfix>       ::= <factor> "!"*
-<factor>              ::= <number> | "(" <expression> ")" | <identifier> <fn_args>?
+<factor>              ::= <literal> | "(" <expression> ")" | <identifier> <fn_args>?
+
+/* complex grammar constructs */
 <fn_args>             ::= "(" (<expression> ("," <expression>)*)? ")"

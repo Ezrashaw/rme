@@ -1,13 +1,17 @@
 use std::collections::HashMap;
 
 use crate::{
-    ast::{BinOperator, Expression, Statement, UnOperator, VarDef},
+    ast::{Expression, Statement, VarDef},
     DErr, Sp, Span, SubDiag, SubDiagLevel,
 };
 
+use self::value::Value;
+
+mod value;
+
 #[derive(Default)]
 pub struct Interpreter {
-    variables: HashMap<String, (Span, f32)>,
+    variables: HashMap<String, (Span, Value)>,
 }
 
 impl Interpreter {
@@ -17,38 +21,22 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret_stmt(&mut self, stmt: Sp<Statement>) -> Result<Option<SubDiag>, DErr> {
+    pub fn interpret_stmt(&mut self, stmt: Sp<Statement>) -> Result<Value, DErr> {
         let (stmt, span) = stmt.into_parts();
         match stmt {
             Statement::Expr(expr) => {
-                let is_print = expr.is_print_expr();
-                let val = self.interpret_expr(Sp::new(expr, span))?;
-
-                if is_print {
-                    Ok(None)
-                } else {
-                    let mut info_diag = SubDiag::new(
-                        SubDiagLevel::Info,
-                        format!("evalulated standalone expression to be `{val}`"),
-                        span,
-                    );
-
-                    info_diag.add_subdiag(SubDiag::without_span(
-                        SubDiagLevel::Help,
-                        "consider using the `print` function",
-                    ));
-
-                    Ok(Some(info_diag))
-                }
+                // let is_print = expr.is_print_expr();
+                let val = self.interpret_expr(&Sp::new(expr, span))?;
+                Ok(val)
             }
-            Statement::VarDef(var_stmt) => self.interpret_var_def(var_stmt).map(|_| None),
+            Statement::VarDef(var_stmt) => self.interpret_var_def(var_stmt).map(|_| Value::Unit),
         }
     }
 
     fn interpret_var_def(&mut self, var_def: VarDef) -> Result<(), DErr> {
         let (var_name, var_span) = var_def.name.into_parts();
-        let var_value = self.variables.get(&var_name).copied();
-        let value = self.interpret_expr(var_def.expr)?;
+        let var_value = self.variables.get(&var_name).cloned();
+        let value = self.interpret_expr(&var_def.expr)?;
 
         match var_value {
             // correct variable definition
@@ -76,64 +64,57 @@ impl Interpreter {
         }
     }
 
-    fn interpret_expr(&self, expr: Sp<Expression>) -> Result<f32, DErr> {
-        let (expr, span) = expr.into_parts();
+    fn interpret_expr(&self, expr: &Sp<Expression>) -> Result<Value, DErr> {
+        let (expr, span) = expr.as_parts();
         Ok(match expr {
-            Expression::Paren { expr, .. } => self.interpret_expr(expr.unbox())?,
+            Expression::Paren { expr, .. } => self.interpret_expr(expr)?,
             Expression::BinOp { lhs, rhs, op } => {
-                let lhs = self.interpret_expr(lhs.unbox())?;
-                let rhs = self.interpret_expr(rhs.unbox())?;
+                let lhv = self.interpret_expr(lhs)?;
+                let rhv = self.interpret_expr(rhs)?;
 
-                match op.inner() {
-                    BinOperator::Add => lhs + rhs,
-                    BinOperator::Sub => lhs - rhs,
-                    BinOperator::Mul => lhs * rhs,
-                    BinOperator::Div => lhs / rhs,
-                }
+                Value::eval_binop(Sp::new(lhv, lhs.span()), Sp::new(rhv, rhs.span()), *op)?
             }
             Expression::UnaryOp { expr, op } => {
-                let expr = self.interpret_expr(expr.unbox())?;
+                let expr_val = self.interpret_expr(expr)?;
 
-                match op.inner() {
-                    UnOperator::Negation => -expr,
-                    UnOperator::Factorial => {
-                        let expr = expr as u128;
-                        let mut val = 1u128;
-                        for i in 1..=expr {
-                            val = val.saturating_mul(i);
-                        }
-
-                        val as f32
-                    }
-                }
+                Value::eval_unop(Sp::new(expr_val, expr.span()), *op)?
             }
-            Expression::Literal(x) => x,
+            Expression::Literal(lit) => (*lit).into(),
             Expression::Variable(var) => self.lookup_variable(span, &var)?,
             Expression::FunctionCall { name, args, .. } => {
                 let evaled_args = args
                     .iter()
-                    .map(|(arg, _)| self.interpret_expr(arg.clone()))
+                    .map(|(arg, _)| self.interpret_expr(arg))
                     .collect::<Result<Vec<_>, DErr>>()?;
 
-                let Some(function) = self.lookup_one_arg_function(&name) else {
-                    return Err(DErr::new_err(format!("unknown built-in function `{name}`"), name.span()));
-                };
+                if let [Value::Float(arg)] = evaled_args[..] {
+                    if name.inner() == "print" {
+                        println!("{arg}");
+                        return Ok(Value::Unit);
+                    }
 
-                let arg = evaled_args[0];
-                function(arg)
+                    if let Some(function) = Self::lookup_simple_float_function(name.inner()) {
+                        return Ok(Value::Float(function(arg)));
+                    }
+                }
+
+                return Err(DErr::new_err(
+                    format!("unknown function `{name}`"),
+                    name.span(),
+                ));
             }
         })
     }
 
-    fn lookup_variable(&self, span: Span, var: &str) -> Result<f32, DErr> {
+    fn lookup_variable(&self, span: Span, var: &str) -> Result<Value, DErr> {
         self.variables
             .get(var)
             .map(|(_, val)| val)
-            .copied()
+            .cloned()
             .ok_or_else(|| DErr::new_err(format!("unknown variable `{var}`"), span))
     }
 
-    fn lookup_one_arg_function(&self, name: &str) -> Option<fn(f32) -> f32> {
+    fn lookup_simple_float_function(name: &str) -> Option<fn(f32) -> f32> {
         Some(match name {
             "abs" => f32::abs,
             "trunc" => f32::trunc,
@@ -146,12 +127,6 @@ impl Interpreter {
             "log2" => f32::log2,
             "log10" => f32::log10,
             "cos" => f32::cos,
-            "print" => |x| {
-                println!("{x}");
-
-                // FIXME: with types, this returns (for example) the unit type
-                0.
-            },
             _ => return None,
         })
     }

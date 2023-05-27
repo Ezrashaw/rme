@@ -20,75 +20,27 @@ impl Display for VarDef {
 
 impl Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            display_expr_prec(self, false, f)
-        } else {
-            display_expr(self, f)
-        }
-    }
-}
-
-fn display_expr(expr: &Expression, f: &mut fmt::Formatter) -> fmt::Result {
-    match expr {
-        Expression::Paren { expr, .. } => write!(f, "({expr})"),
-        Expression::BinOp { lhs, rhs, op } => write!(f, "{lhs} {} {rhs}", *op),
-        Expression::UnaryOp { expr, op } => match op.inner() {
-            UnOperator::Negation => write!(f, "{}{}", op, expr),
-            UnOperator::Factorial => write!(f, "{}{}", expr, op),
-        },
-        Expression::Literal(val) => write!(f, "{val}"),
-        Expression::Variable(var) => write!(f, "{var}"),
-        Expression::FunctionCall { name, args, .. } => {
-            write!(f, "{name}(")?;
-            for (idx, arg) in args.iter().enumerate() {
-                write!(f, "{}", arg.0)?;
-                if idx < args.len() - 1 {
-                    write!(f, ", ")?;
+        match self {
+            Self::Paren { expr, .. } => write!(f, "({expr})"),
+            Self::BinOp { lhs, rhs, op } => write!(f, "{lhs} {} {rhs}", *op),
+            Self::UnaryOp { expr, op } => match op.inner() {
+                UnOperator::Negation => write!(f, "{}{}", op, expr),
+                UnOperator::Factorial => write!(f, "{}{}", expr, op),
+            },
+            Self::Literal(lit) => write!(f, "{lit}"),
+            Self::Variable(var) => write!(f, "{var}"),
+            Self::FunctionCall { name, args, .. } => {
+                write!(f, "{name}(")?;
+                for (idx, arg) in args.iter().enumerate() {
+                    write!(f, "{}", arg.0)?;
+                    if idx < args.len() - 1 {
+                        write!(f, ", ")?;
+                    }
                 }
+
+                write!(f, ")")
             }
-
-            write!(f, ")")
         }
-    }
-}
-
-fn display_expr_prec(expr: &Expression, no_show: bool, f: &mut fmt::Formatter) -> fmt::Result {
-    let show_parens =
-        matches!(expr, Expression::UnaryOp { .. } | Expression::BinOp { .. }) && !no_show;
-    if show_parens {
-        write!(f, "(")?;
-    }
-
-    match expr {
-        Expression::Paren { expr: inner, .. } => {
-            write!(f, "(")?;
-            display_expr_prec(inner, true, f)?;
-            write!(f, ")")
-        }
-        Expression::BinOp { lhs, rhs, op } => write!(f, "{lhs:#} {} {rhs:#}", *op),
-        Expression::UnaryOp { expr, op } => match op.inner() {
-            UnOperator::Negation => write!(f, "{}{:#}", op, expr),
-            UnOperator::Factorial => write!(f, "{:#}{}", expr, op),
-        },
-        Expression::Literal(val) => write!(f, "{val}"),
-        Expression::Variable(var) => write!(f, "{var}"),
-        Expression::FunctionCall { name, args, .. } => {
-            write!(f, "{name}(")?;
-            for (idx, arg) in args.iter().enumerate() {
-                write!(f, "{:#}", arg.0)?;
-                if idx < args.len() - 1 {
-                    write!(f, ", ")?;
-                }
-            }
-
-            write!(f, ")")
-        }
-    }?;
-
-    if show_parens {
-        write!(f, ")")
-    } else {
-        Ok(())
     }
 }
 
