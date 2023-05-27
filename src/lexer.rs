@@ -1,115 +1,36 @@
-use std::{fmt, str::FromStr};
+use std::str::FromStr;
 
-use crate::{DErr, Sp, Span};
+use crate::{DErr, Diag, Span, SubDiag, SubDiagLevel};
 
-/// A spanned token/lexme.
-///
-/// Is a spanned wrapper for [`TokenKind`], the "meat" of each token.
-pub type Token = Sp<TokenKind>;
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum TokenKind {
-    // "complex" tokens
-    Literal(Literal),
-    Identifier(String),
-
-    // keywords
-    Keyword(Keyword),
-
-    // misc punctuation
-    Equals,
-    Comma,
-
-    // delimiters
-    ParenOpen,
-    ParenClose,
-
-    // operators
-    Plus,
-    Minus,
-    Star,
-    Slash,
-    Bang,
-}
-
-impl TokenKind {
-    /// Returns a string literal which identifies this token *as it should look in a diagnostic*.
-    ///
-    /// The caller should wrap the returned value in backticks (`` ` ` ``)
-    /// before displaying in a diagnostic.
-    pub fn diag_str(&self) -> &'static str {
-        match self {
-            Self::Literal(_) => "<float literal>",
-            Self::Identifier(_) => "<identifier>",
-            Self::Equals => "=",
-            Self::Comma => ",",
-            Self::ParenOpen => "(",
-            Self::ParenClose => ")",
-            Self::Plus => "+",
-            Self::Minus => "-",
-            Self::Star => "*",
-            Self::Slash => "/",
-            Self::Bang => "!",
-            Self::Keyword(kw) => kw.diag_str(),
-        }
-    }
-}
-
-impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}@{:?}", self.inner(), self.span())
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Literal {
-    Float(f32),
-    Bool(bool),
-}
-
-impl fmt::Display for Literal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Literal::Float(x) => write!(f, "{x}"),
-            Literal::Bool(x) => write!(f, "{x}"),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Keyword {
-    Let,
-    Fn,
-}
-
-impl FromStr for Keyword {
-    type Err = ();
-
-    /// Attempts to get a keyword from a given string.
-    ///
-    /// This function is used by the lexer.
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "let" => Self::Let,
-            "fn" => Self::Fn,
-            _ => return Err(()),
-        })
-    }
-}
-
-impl Keyword {
-    /// Derived function for getting the "diagnostic-friendly" representation
-    /// of a token. See the docs on [`TokenKind::diag_str`].
-    pub fn diag_str(&self) -> &'static str {
-        match self {
-            Self::Let => "let",
-            Self::Fn => "fn",
-        }
-    }
-}
+mod token;
+pub use token::*;
 
 /// Fully lexes the provided input (with a span offset), using the [`Lexer`]
 /// structure.
+///
+/// # Examples
+///
+/// ```
+/// # use rme::{TokenKind, Span};
+///
+/// let tokens = rme::lex("++", 0);
+/// for token in tokens {
+///     assert_eq!(token?.into_parts().0, TokenKind::Plus);
+/// }
+/// # Ok::<(), rme::DErr>(())
+/// ```
+///
+/// ```
+/// # use rme::{TokenKind, Span};
+///
+/// let tokens = rme::lex(";", 10);
+/// let span = tokens.into_iter()
+///     .next()
+///     .expect("lexer returned no tokens")?
+///     .span();
+/// assert_eq!(span, Span::new(10, 11));
+/// # Ok::<(), rme::DErr>(())
+/// ```
 pub fn lex(input: &str, span_offset: usize) -> Vec<Result<Token, DErr>> {
     let lexer = Lexer::new(input, span_offset);
     lexer.collect()
@@ -117,14 +38,12 @@ pub fn lex(input: &str, span_offset: usize) -> Vec<Result<Token, DErr>> {
 
 /// Simple whitespace-ignorant lexer.
 ///
-/// Iterates over RME tokens produced from an ASCII `&str`(represented
-/// internally as `&[u8]`). Optionally allows a "span offset" to be set which
-/// is useful for REPLs where each line has its own [`Lexer`] but [`Span`]s
-/// must be unique.
+/// Iterates over [`Token`]s produced from an ASCII `&str`. Optionally allows a
+/// "span offset" to be set which is useful for the REPL where each line has
+/// its own [`Lexer`] but [`Span`]s must be unique.
 pub struct Lexer<'inp> {
     input: &'inp [u8],
     position: usize,
-    // FIXME: we don't really want this
     span_offset: usize,
 }
 
@@ -136,8 +55,6 @@ impl<'inp> Lexer<'inp> {
     /// `span_offset` can be used to ensure correct (unique) [`Span`]s, even
     /// when previously lexed (by a different instance) input exists.
     pub fn new(input: &'inp str, span_offset: usize) -> Self {
-        // FIXME: use diagnostics instead of `assert!`
-        assert!(input.is_ascii());
         Self {
             input: input.as_bytes(),
             position: 0,
@@ -184,6 +101,7 @@ impl<'inp> Lexer<'inp> {
             // single character "easy" tokens
             b'=' => TokenKind::Equals,
             b',' => TokenKind::Comma,
+            b';' => TokenKind::Semi,
             b'(' => TokenKind::ParenOpen,
             b')' => TokenKind::ParenClose,
             b'+' => TokenKind::Plus,
@@ -199,11 +117,18 @@ impl<'inp> Lexer<'inp> {
                 });
 
                 match id {
+                    // boolean literals aren't offically keywords, but you
+                    // can't get an identifier with them 
                     "true" => TokenKind::Literal(Literal::Bool(true)),
                     "false" => TokenKind::Literal(Literal::Bool(false)),
+                    
+                    // check if the identifier is a keyword, and return a
+                    // lightweight `Keyword`
                     _ if let Ok(kw) = Keyword::from_str(id) => {
                         TokenKind::Keyword(kw)
                     }
+
+                    // otherwise, return a normal identifier
                     _ => TokenKind::Identifier(id.to_owned())
                 }
             }
@@ -220,6 +145,27 @@ impl<'inp> Lexer<'inp> {
                         self.new_span(span_start),
                     )));
                 }
+            }
+
+            // if the character isn't ASCII, then emit a distinct error
+            ch if !ch.is_ascii() => {
+                let mut err = Diag::new_err("input is not ASCII", self.new_span(span_start));
+                err.span_tag("this character is invalid in RME");
+                // This is a bit of an understatement, *all* lexed spans after
+                // here might break. I'm not too concerned about this though.
+                err.add_subdiag(SubDiag::without_span(
+                    SubDiagLevel::Note,
+                    "the provided span may not be correct",
+                ));
+
+                // Every (non-ASCII) UTF-8 character begins with a number of
+                // true-bits corresponding to the number of bytes in the
+                // multi-byte character. We've already read one character, so
+                // skip the rest to avoid emitting duplicate errors. See also
+                // the [Wikipedia page](https://en.wikipedia.org/wiki/UTF-8).
+                self.position += (ch.leading_ones() - 1) as usize;
+
+                return Some(Err(err));
             }
 
             // return an error if the character doesn't match any tokens
@@ -252,16 +198,16 @@ impl<'inp> Lexer<'inp> {
     }
 }
 
-/// Repeatedly calls `Lexer::next_token`
-///
-/// As per `next_token`:
-/// - If the return value is `None`, then we have reached the end of the
-///   input.
-/// - If the return value is `Some(Err)`, then some error was encountered
-///   *while lexing a token* (e.g. float literal had 2 decimal points).
 impl Iterator for Lexer<'_> {
     type Item = Result<Token, DErr>;
 
+    /// Repeatedly calls `Lexer::next_token`
+    ///
+    /// As per `next_token`:
+    /// - If the return value is `None`, then we have reached the end of the
+    ///   input.
+    /// - If the return value is `Some(Err)`, then some error was encountered
+    ///   *while lexing a token* (e.g. float literal had 2 decimal points).
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token()
     }

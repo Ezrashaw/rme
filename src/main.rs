@@ -1,4 +1,7 @@
-use rme::{parser::parse, DErr, Interpreter, SourceMap, SubDiag, SubDiagLevel};
+use rme::{
+    ast::Statement, parser::Parser, DErr, Interpreter, Lexer, SourceMap, Sp, SubDiag, SubDiagLevel,
+    Token,
+};
 use std::io::{stdin, stdout, Write};
 
 fn main() {
@@ -24,9 +27,9 @@ fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result
     }
 
     let offset = source_map.len();
-    source_map.push_line(input.clone());
+    source_map.push_line(&input);
 
-    let ast = parse(&input, offset)?;
+    let ast = parse_stmt(&input, offset)?;
     let ast_span = ast.span();
 
     let formatted = ast.to_string();
@@ -50,4 +53,11 @@ fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result
     info_diag.emit(source_map);
 
     Ok(())
+}
+
+fn parse_stmt(input: &str, span_offset: usize) -> Result<Sp<Statement>, DErr> {
+    let tokens = Lexer::new(input, span_offset).collect::<Result<Vec<Token>, DErr>>()?;
+
+    let parser = Parser::new(tokens.into_iter());
+    parser.parse_single_stmt()
 }

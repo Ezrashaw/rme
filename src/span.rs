@@ -48,30 +48,13 @@ impl Span {
         Self::new(start, end)
     }
 
-    // FIXME: remove this; it's gross
-    pub fn ensure_clamped(mut self, max_len: usize) -> Self {
-        if self.start == Self::END_POS {
-            self.start = max_len;
-        }
-        if self.end == Self::END_POS {
-            self.end = max_len;
-        }
-
-        self
+    pub fn until(self, other: Self) -> Self {
+        Self::new(self.start, other.end)
     }
 
     pub fn offset(self, distance: isize) -> Self {
-        let start = if self.start == usize::MAX {
-            usize::MAX
-        } else {
-            self.start.checked_add_signed(distance).unwrap()
-        };
-
-        let end = if self.end == usize::MAX {
-            usize::MAX
-        } else {
-            self.end.checked_add_signed(distance).unwrap()
-        };
+        let start = self.start.saturating_add_signed(distance);
+        let end = self.end.saturating_add_signed(distance);
 
         Self::new(start, end)
     }
@@ -79,11 +62,7 @@ impl Span {
 
 impl Debug for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            write!(f, "Span({}..{})", self.start, self.end)
-        } else {
-            write!(f, "{}..{}", self.start, self.end)
-        }
+        write!(f, "{}..{}", self.start, self.end)
     }
 }
 
@@ -101,8 +80,8 @@ impl SourceMap {
         Self { input }
     }
 
-    pub fn push_line(&mut self, line: String) {
-        self.input.push_str(&line);
+    pub fn push_line(&mut self, line: &str) {
+        self.input.push_str(line);
     }
 
     pub fn get_span_lined(&self, span: Span) -> (usize, &str, Span) {

@@ -47,6 +47,13 @@ fn get_ext_files(directory: PathBuf, extension: &str) -> Result<Vec<PathBuf>, io
     Ok(directory
         .read_dir()?
         .filter_map(|d| d.ok().map(|d| d.path()))
+        .flat_map(|d| {
+            if d.is_dir() {
+                get_ext_files(d, extension).unwrap()
+            } else {
+                vec![d]
+            }
+        })
         .filter(|d| d.extension().unwrap_or_default() == extension)
         .collect::<Vec<_>>())
 }
@@ -58,18 +65,23 @@ fn generate_tests<T: RegressionTests>(
         fs::remove_file(file).unwrap();
     }
 
+    let mut current_dir = PathBuf::from(file!()).canonicalize()?;
+    current_dir.pop();
+    let current_dir = current_dir;
+
     for file in get_ext_files(T::tests_directory(), "test")? {
         let blessed = env::args().any(|x| x == "--bless");
-        let file_stem = file
-            .file_stem()
-            .ok_or("test had no filename")?
-            .to_str()
-            .ok_or("test file name not UTF-8")?
-            .to_owned();
+
+        let mut test_name = file.canonicalize()?;
+        test_name.set_extension("");
+        let test_name = test_name
+            .strip_prefix(&current_dir)?
+            .to_string_lossy()
+            .replace('/', "::");
 
         tests.push(TestDescAndFn {
             desc: TestDesc {
-                name: test::TestName::DynTestName(format!("{}::{file_stem}", T::NAMESPACE)),
+                name: test::TestName::DynTestName(test_name),
                 ignore: false,
                 ignore_message: None,
                 source_file: Box::leak(file.display().to_string().into_boxed_str()),

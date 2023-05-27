@@ -82,7 +82,7 @@ impl Interpreter {
                 Value::eval_unop(Sp::new(expr_val, expr.span()), *op)?
             }
             Expression::Literal(lit) => (*lit).into(),
-            Expression::Variable(var) => self.lookup_variable(span, &var)?,
+            Expression::Variable(var) => self.lookup_variable(span, var)?,
             Expression::FunctionCall { name, args, .. } => {
                 let evaled_args = args
                     .iter()

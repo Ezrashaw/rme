@@ -3,6 +3,10 @@ use crate::{lexer, Sp, SpBox, Span};
 pub mod debug;
 mod display;
 
+pub struct Ast {
+    pub statements: Vec<(Sp<Statement>, Span)>,
+}
+
 #[derive(Clone)]
 pub enum Statement {
     Expr(Sp<Expression>),
@@ -46,9 +50,9 @@ pub enum Expression {
 impl Expression {
     pub fn new_binop(
         op: Sp<BinOperator>,
-        lhs: Sp<Expression>,
-        rhs: Sp<Expression>,
-    ) -> Sp<Expression> {
+        lhs: Sp<Self>,
+        rhs: Sp<Self>,
+    ) -> Sp<Self> {
         let span = Span::merge(lhs.span(), rhs.span());
         Sp::new(
             Self::BinaryOp {
@@ -60,7 +64,7 @@ impl Expression {
         )
     }
 
-    pub fn new_unop(op: Sp<UnOperator>, expr: Sp<Expression>) -> Sp<Expression> {
+    pub fn new_unop(op: Sp<UnOperator>, expr: Sp<Self>) -> Sp<Self> {
         let span = Span::merge(op.span(), expr.span());
         Sp::new(
             Self::UnaryOp {
