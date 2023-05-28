@@ -80,16 +80,13 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             let args = self.parse_fn_call_args()?;
             let close = self.expect(TokenKind::ParenClose)?;
 
-            let span = Span::merge(expr.span(), close);
-            expr = Sp::new(
-                Expression::FunctionCall {
-                    expr: expr.map_inner(Box::new),
-                    args,
-                    open,
-                    close,
-                },
-                span,
-            );
+            let fn_call = Expression::FunctionCall {
+                expr: expr.map_inner(Box::new),
+                args,
+                open,
+                close,
+            };
+            expr = fn_call.spanify();
         }
 
         Ok(expr)
@@ -116,7 +113,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                     expr,
                 };
 
-                Sp::new(expr, Span::merge(tok_span, close))
+                expr.spanify()
             }
             TokenKind::Literal(lit) => Sp::new(Expression::Literal(lit), tok_span),
             TokenKind::Identifier(id) => Sp::new(Expression::Variable(id), tok_span),

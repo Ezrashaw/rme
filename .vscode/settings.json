@@ -5,6 +5,7 @@
         "Lexer",
         "Paren",
         "Peekable",
+        "spanify",
         "subdiag",
         "unop"
     ]

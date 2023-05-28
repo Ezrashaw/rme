@@ -122,37 +122,33 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     ///
     /// Corresponds to the `<statement>` non-terminal.
     fn parse_stmt(&mut self) -> Result<Sp<Statement>, DErr> {
-        // FIXME: this code is ugly
-        let (stmt, sp) = if let Some(let_kw) = self.eat(TokenKind::Keyword(Keyword::Let)) {
-            let var_def = self.parse_var_def(let_kw)?;
-            let sp = var_def.span();
-            (Statement::VarDef(var_def), sp)
+        let stmt = if self.is(TokenKind::Keyword(Keyword::Let)) {
+            let var_def = self.parse_var_def()?;
+            Statement::VarDef(var_def)
         } else {
             let expr = self.parse_expr()?;
-            let sp = expr.span();
-            (Statement::Expr(expr), sp)
+            Statement::Expr(expr)
         };
 
-        Ok(Sp::new(stmt, sp))
+        Ok(stmt.spanify())
     }
 
     /// Parses a `let` statement, also called a variable definition (`var_def`).
-    /// 
+    ///
     /// Corresponds to the `<var_def>` non-terminal.
-    fn parse_var_def(&mut self, let_kw: Span) -> Result<Sp<VarDef>, DErr> {
+    fn parse_var_def(&mut self) -> Result<Sp<VarDef>, DErr> {
+        let let_kw = self.expect(TokenKind::Keyword(Keyword::Let))?;
         let name = self.expect_id()?;
         let equals = self.expect(TokenKind::Equals)?;
         let expr = self.parse_expr()?;
 
-        let span = Span::merge(let_kw, expr.span());
-        Ok(Sp::new(
-            VarDef {
-                let_kw,
-                name,
-                equals,
-                expr,
-            },
-            span,
-        ))
+        let var_def = VarDef {
+            let_kw,
+            name,
+            equals,
+            expr,
+        };
+
+        Ok(var_def.spanify())
     }
 }
