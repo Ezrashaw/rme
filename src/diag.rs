@@ -105,7 +105,7 @@ impl<L: DiagnosticLevel> Diag<L> {
         writeln!(
             w,
             "\x1B[1;3;{}m{}\x1B[0m: {}",
-            self.level.ansi_color_code(),
+            self.level.ansi_colour_code(),
             self.level.name(),
             self.msg
         )?;

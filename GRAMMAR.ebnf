@@ -7,6 +7,7 @@
 <literal>    ::= <number> | "true" | "false"
 
 /* the root program node */
+<program>   ::= (<statement> ";")+
 <statement> ::= <var_def> | <expression>
 
 <var_def> ::= "let " <identifier> "=" <expression>
@@ -16,8 +17,9 @@
 <additive_expression> ::= <term> (("+" | "-") <term>)*
 <term>                ::= <factor> (("*" | "/") <factor>)*
 <unary_prefix>        ::= "-" <unary_prefix> | <unary_postfix>
-<unary_postfix>       ::= <factor> "!"*
-<factor>              ::= <literal> | "(" <expression> ")" | <identifier> <fn_call_args>?
+<unary_postfix>       ::= <fn_call> "!"*
+<fn_call>             ::= <factor> ("(" <fn_call_arg_list> ")")*
+<factor>              ::= <literal> | "(" <expression> ")" | <identifier>
 
 /* complex grammar constructs */
-<fn_call_args>             ::= "(" (<expression> ("," <expression>)*)? ")"
+<fn_call_arg_list>    ::= (<expression> ("," <expression>)*)?

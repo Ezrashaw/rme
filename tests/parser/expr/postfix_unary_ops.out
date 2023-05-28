@@ -1,0 +1,55 @@
+1!!;
+(1 + 1)!;
+1 + 1!;
+function()!;
+variable!;
+
+---AST Statement (semi: 3..4) #0---
+Statement(Expression)@0..3
+| UnaryOp@0..3
+| | op: Factorial@2..3
+| | expr: UnaryOp@0..2
+| | | op: Factorial@1..2
+| | | expr: Float(1.0)@0..1
+-------
+
+---AST Statement (semi: 13..14) #1---
+Statement(Expression)@5..13
+| UnaryOp@5..13
+| | op: Factorial@12..13
+| | expr: Paren@5..12
+| | | open: 5..6
+| | | close: 11..12
+| | | expr: BinaryOp@6..11
+| | | | op: Add@8..9
+| | | | lhs: Float(1.0)@6..7
+| | | | rhs: Float(1.0)@10..11
+-------
+
+---AST Statement (semi: 21..22) #2---
+Statement(Expression)@15..21
+| BinaryOp@15..21
+| | op: Add@17..18
+| | lhs: Float(1.0)@15..16
+| | rhs: UnaryOp@19..21
+| | | op: Factorial@20..21
+| | | expr: Float(1.0)@19..20
+-------
+
+---AST Statement (semi: 34..35) #3---
+Statement(Expression)@23..34
+| UnaryOp@23..34
+| | op: Factorial@33..34
+| | expr: FunctionCall@23..33
+| | | expr: Variable("function")@23..31
+| | | open: 31..32
+| | | close: 32..33
+-------
+
+---AST Statement (semi: 45..46) #4---
+Statement(Expression)@36..45
+| UnaryOp@36..45
+| | op: Factorial@44..45
+| | expr: Variable("variable")@36..44
+-------
+

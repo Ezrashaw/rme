@@ -40,7 +40,7 @@ fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result
 
     let mut info_diag = SubDiag::new(
         SubDiagLevel::Info,
-        format!("evalulated standalone expression to be `{val}`"),
+        format!("evaluated standalone expression to be `{val}`"),
         ast_span,
     );
 

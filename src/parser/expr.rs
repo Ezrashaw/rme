@@ -4,11 +4,13 @@ use crate::{
     DErr, Sp, Span, Token, TokenKind,
 };
 
+type ExprRes = Result<Sp<Expression>, DErr>;
+
 impl<I: Iterator<Item = Token>> Parser<I> {
     /// Parses an expression.
     ///
     /// Corresponds to the `<expression>` non-terminal.
-    pub(super) fn parse_expr(&mut self) -> Result<Sp<Expression>, DErr> {
+    pub(super) fn parse_expr(&mut self) -> ExprRes {
         self.parse_additive_expr()
     }
 
@@ -38,7 +40,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     /// unary negation.
     ///
     /// Corresponds to the `<unary_prefix>` non-terminal.
-    fn parse_unary_prefix(&mut self) -> Result<Sp<Expression>, DErr> {
+    fn parse_unary_prefix(&mut self) -> ExprRes {
         if let Some(op_span) = self.eat(TokenKind::Minus) {
             let expr = self.parse_unary_prefix()?;
             let expr = Expression::new_unop(Sp::new(UnOperator::Negation, op_span), expr);
@@ -53,8 +55,8 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     /// the factorial operator.
     ///
     /// Corresponds to the `<unary_postfix>` non-terminal.
-    fn parse_unary_postfix(&mut self) -> Result<Sp<Expression>, DErr> {
-        let mut expr = self.parse_factor()?;
+    fn parse_unary_postfix(&mut self) -> ExprRes {
+        let mut expr = self.parse_fn_call()?;
 
         // Unary postfix operators are inherently left-recursive. We have to
         // remove left recursion (with a loop) to be able to parse them.
@@ -65,15 +67,42 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         Ok(expr)
     }
 
+    /// Parses a function call.
+    ///
+    /// Note that some of the work here is delegated to
+    /// [`Parser::parse_fn_call_args`] for code simplicity.
+    ///
+    /// Corresponds to the `<fn_call>` non-terminal.
+    fn parse_fn_call(&mut self) -> ExprRes {
+        let mut expr = self.parse_factor()?;
+
+        while let Some(open) = self.eat(TokenKind::ParenOpen) {
+            let args = self.parse_fn_call_args()?;
+            let close = self.expect(TokenKind::ParenClose)?;
+
+            let span = Span::merge(expr.span(), close);
+            expr = Sp::new(
+                Expression::FunctionCall {
+                    expr: expr.map_inner(Box::new),
+                    args,
+                    open,
+                    close,
+                },
+                span,
+            );
+        }
+
+        Ok(expr)
+    }
+
     /// Parses a "factor".
     /// This contains the highest precedence rules:
     /// - parenthesized expressions
-    /// - function calls
     /// - variable references
     /// - literals
     ///
     /// Corresponds to the `<factor>` non-terminal.
-    fn parse_factor(&mut self) -> Result<Sp<Expression>, DErr> {
+    fn parse_factor(&mut self) -> ExprRes {
         let (tok, tok_span) = self.next()?.into_parts();
 
         Ok(match tok {
@@ -90,58 +119,59 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 Sp::new(expr, Span::merge(tok_span, close))
             }
             TokenKind::Literal(lit) => Sp::new(Expression::Literal(lit), tok_span),
-            TokenKind::Identifier(id) => {
-                if let Some(open_paren) = self.eat(TokenKind::ParenOpen) {
-                    self.parse_fn_call_args(Sp::new(id, tok_span), open_paren)?
-                } else {
-                    Sp::new(Expression::Variable(id), tok_span)
-                }
-            }
+            TokenKind::Identifier(id) => Sp::new(Expression::Variable(id), tok_span),
             _ => {
+                // The only(?) way to get here is to fall through from above,
+                // therefore we can be certain that no other tokens have been
+                // parsed (as part of the current expression). Therefore, the
+                // word "expression" is used, as opposed to something more
+                // local like "factor."
                 return Err(Self::create_expected_err(
-                    "factor",
+                    "expression",
                     Token::new(tok, tok_span),
                 ));
             }
         })
     }
 
-    fn parse_fn_call_args(
-        &mut self,
-        name: Sp<String>,
-        open_paren: Span,
-    ) -> Result<Sp<Expression>, DErr> {
+    /// Parses a function call's arguments (excluding parentheses).
+    ///
+    /// Corresponds to the `<fn_call_args>` non-terminal.
+    fn parse_fn_call_args(&mut self) -> Result<Vec<(Sp<Expression>, Option<Span>)>, DErr> {
         let mut args = Vec::new();
-        let close_paren = if let Some(close_paren) = self.eat(TokenKind::ParenClose) {
-            close_paren
-        } else {
-            loop {
-                let arg = self.parse_expr()?;
 
-                if let Some(comma) = self.eat(TokenKind::Comma) {
-                    args.push((arg, Some(comma)));
-                } else {
-                    args.push((arg, None));
-                    break self.expect(TokenKind::ParenClose)?;
-                }
+        // We must immediately short-circuit if we see a closing parenthesis;
+        // the loop below only ends based on commas. Note how we don't eat the
+        // closing parenthesis, the calling function does, so that it gets the
+        // span easily.
+        if self.is(TokenKind::ParenClose) {
+            return Ok(args);
+        }
+
+        loop {
+            let arg = self.parse_expr()?;
+
+            // If we see a comma then (according to the grammar), more
+            // arguments must exist. If not, then no more arguments can exist,
+            // and we exit (allowing the caller to eat the closing
+            // parenthesis). Note that this is different to many languages,
+            // which allow a trailing comma.
+            if let Some(comma) = self.eat(TokenKind::Comma) {
+                args.push((arg, Some(comma)));
+            } else {
+                args.push((arg, None));
+                break;
             }
-        };
+        }
 
-        let full_span = Span::merge(name.span(), close_paren);
-        let expr = Expression::FunctionCall {
-            name,
-            args,
-            open: open_paren,
-            close: close_paren,
-        };
-        Ok(Sp::new(expr, full_span))
+        Ok(args)
     }
 }
 
 macro_rules! parse_binop {
     ($(#[$attr:meta])* fn $name:ident => $lower:ident + [$($tok:pat => $op:expr),+]) => {
         $(#[$attr])*
-        fn $name(&mut self) -> Result<Sp<Expression>, DErr> {
+        fn $name(&mut self) -> ExprRes {
             let mut expr = self.$lower()?;
 
             while let Some(peek) = self.input.peek() {

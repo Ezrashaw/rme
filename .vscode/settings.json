@@ -3,7 +3,9 @@
         "binop",
         "Diag",
         "Lexer",
+        "Paren",
         "Peekable",
-        "subdiag"
+        "subdiag",
+        "unop"
     ]
 }

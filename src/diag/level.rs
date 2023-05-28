@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 pub trait DiagnosticLevel: Debug {
     fn name(&self) -> &'static str;
-    fn ansi_color_code(&self) -> &'static str;
+    fn ansi_colour_code(&self) -> &'static str;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -13,7 +13,7 @@ impl DiagnosticLevel for ErrorLevel {
         "error"
     }
 
-    fn ansi_color_code(&self) -> &'static str {
+    fn ansi_colour_code(&self) -> &'static str {
         "31"
     }
 }
@@ -34,10 +34,10 @@ impl DiagnosticLevel for SubDiagLevel {
         }
     }
 
-    fn ansi_color_code(&self) -> &'static str {
+    fn ansi_colour_code(&self) -> &'static str {
         match self {
             Self::Info => "36",
-            Self::Help => "38;99",
+            Self::Help => "38;5;99",
             Self::Note => "92",
         }
     }
