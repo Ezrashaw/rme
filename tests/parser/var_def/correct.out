@@ -11,4 +11,3 @@ Statement(VarDef)@0..13
 | | | lhs: Float(1.0)@8..9
 | | | rhs: Float(1.0)@12..13
 -------
-

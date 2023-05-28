@@ -38,4 +38,3 @@ Statement(Expression)@18..26
 | | | | expr: Variable("x")@20..21
 | | rhs: Float(1.0)@25..26
 -------
-

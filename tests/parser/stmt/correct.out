@@ -7,4 +7,3 @@ Statement(Expression)@0..5
 | | lhs: Float(1.0)@0..1
 | | rhs: Float(1.0)@4..5
 -------
-

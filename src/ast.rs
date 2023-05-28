@@ -102,19 +102,6 @@ impl Expression {
 
         expr.spanify()
     }
-
-    pub fn is_print_expr(&self) -> bool {
-        match self {
-            Self::FunctionCall { expr, .. } => {
-                if let Self::Variable(name) = expr.unbox().inner() {
-                    name == "print"
-                } else {
-                    false
-                }
-            }
-            _ => false,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -125,8 +112,28 @@ pub enum BinOperator {
     Div,
 }
 
+/// A unary operator.
+///
+/// That is, a operator with a single operand. The operator may either be before
+/// the operand (prefix position, more common) or after the operand (postfix
+/// position, less common).
 #[derive(Debug, Clone, Copy)]
 pub enum UnOperator {
+    /// Arithmetic negation.
+    ///
+    /// e.g. `-1`
     Negation,
+
+    /// "Factorial" operator.
+    ///
+    /// Computes the product of each value in the range `1..value`.
     Factorial,
+}
+
+impl UnOperator {
+    /// Returns a value indicating whether the [`UnOperator`] is valid in the
+    /// prefix or postfix position.
+    pub fn is_postfix(self) -> bool {
+        matches!(self, Self::Factorial)
+    }
 }

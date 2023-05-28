@@ -40,7 +40,10 @@ pub fn dbg_ast(ast: &Ast, w: &mut impl io::Write, indent: AstIndent) -> io::Resu
 
         write!(w, "{indent}")?;
         dbg_stmt(stmt, w, indent.mv())?;
-        writeln!(w, "-------\n")?;
+        writeln!(w, "-------")?;
+        if idx < ast.statements.len() - 1 {
+            writeln!(w)?;
+        }
     }
 
     Ok(())
