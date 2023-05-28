@@ -39,8 +39,8 @@ impl Display for Expression {
             },
             Self::Literal(lit) => write!(f, "{lit}"),
             Self::Variable(var) => write!(f, "{var}"),
-            Self::FunctionCall { name, args, .. } => {
-                write!(f, "{name}(")?;
+            Self::FunctionCall { expr, args, .. } => {
+                write!(f, "{expr}(")?;
                 for (idx, arg) in args.iter().enumerate() {
                     write!(f, "{}", arg.0)?;
                     if idx < args.len() - 1 {

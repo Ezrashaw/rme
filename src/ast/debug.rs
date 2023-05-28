@@ -80,13 +80,13 @@ pub fn dbg_var_def(
 }
 
 pub fn dbg_expr(
-    expr: Sp<&Expression>,
+    self_: Sp<&Expression>,
     w: &mut impl io::Write,
     indent: AstIndent,
 ) -> io::Result<()> {
-    match expr.inner() {
+    match self_.inner() {
         Expression::Paren { open, close, expr } => {
-            writeln!(w, "Paren@{:?}", expr.span())?;
+            writeln!(w, "Paren@{:?}", self_.span())?;
 
             writeln!(w, "{indent}open: {open:?}")?;
             writeln!(w, "{indent}close: {close:?}")?;
@@ -95,7 +95,7 @@ pub fn dbg_expr(
             dbg_expr(expr.unbox(), w, indent.mv())
         }
         Expression::UnaryOp { op, expr } => {
-            writeln!(w, "UnaryOp@{:?}", expr.span())?;
+            writeln!(w, "UnaryOp@{:?}", self_.span())?;
 
             writeln!(w, "{indent}op: {op:?}")?;
 
@@ -103,10 +103,10 @@ pub fn dbg_expr(
             dbg_expr(expr.unbox(), w, indent.mv())
         }
         Expression::Literal(lit) => {
-            writeln!(w, "{lit:?}@{:?}", expr.span())
+            writeln!(w, "{lit:?}@{:?}", self_.span())
         }
         Expression::BinaryOp { op, lhs, rhs } => {
-            writeln!(w, "BinaryOp@{:?}", expr.span())?;
+            writeln!(w, "BinaryOp@{:?}", self_.span())?;
 
             writeln!(w, "{indent}op: {op:?}")?;
 
@@ -117,16 +117,18 @@ pub fn dbg_expr(
             dbg_expr(rhs.unbox(), w, indent.mv())
         }
         Expression::Variable(var) => {
-            writeln!(w, "Variable({var:?})@{:?}", expr.span())
+            writeln!(w, "Variable({var:?})@{:?}", self_.span())
         }
         Expression::FunctionCall {
-            name,
+            expr,
             args,
             open,
             close,
         } => {
-            writeln!(w, "FunctionCall({name:?})@{:?}", expr.span())?;
+            writeln!(w, "FunctionCall@{:?}", self_.span())?;
 
+            write!(w, "{indent}expr: ")?;
+            dbg_expr(expr.unbox(), w, indent)?;
             writeln!(w, "{indent}open: {open:?}")?;
             writeln!(w, "{indent}close: {close:?}")?;
 

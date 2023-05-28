@@ -71,9 +71,23 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             None
         }
     }
+
+    fn is(&mut self, kind: TokenKind) -> bool {
+        let tok = self.input.peek();
+        if let Some(tok) = tok {
+            *tok.inner() == kind
+        } else {
+            false
+        }
+    }
 }
 
 impl<I: Iterator<Item = Token>> Parser<I> {
+    /// Parses an entire program and consumes the parser itself. Statements are
+    /// semicolon-delimited. Note that this is part of the `<program>`
+    /// production and *not* part of the `<statement>` production.
+    ///
+    /// Corresponds to the `<program>` non-terminal.
     pub fn parse(mut self) -> Result<Ast, DErr> {
         let mut statements = Vec::new();
         while self.input.peek().is_some() {
@@ -86,6 +100,11 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         Ok(Ast { statements })
     }
 
+    /// Parses a single statement and ensures that no other input was given.
+    /// This is called per-line in the REPL.
+    ///
+    /// Parses the `<statement>` non-terminal, however also ensures that no
+    /// input is left over (not per the grammar).
     pub fn parse_single_stmt(mut self) -> Result<Sp<Statement>, DErr> {
         let stmt = self.parse_stmt()?;
 
@@ -99,7 +118,11 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         Ok(stmt)
     }
 
+    /// Parses a statement, without semicolon delimiter (per the grammar).
+    ///
+    /// Corresponds to the `<statement>` non-terminal.
     fn parse_stmt(&mut self) -> Result<Sp<Statement>, DErr> {
+        // FIXME: this code is ugly
         let (stmt, sp) = if let Some(let_kw) = self.eat(TokenKind::Keyword(Keyword::Let)) {
             let var_def = self.parse_var_def(let_kw)?;
             let sp = var_def.span();
@@ -113,6 +136,9 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         Ok(Sp::new(stmt, sp))
     }
 
+    /// Parses a `let` statement, also called a variable definition (`var_def`).
+    /// 
+    /// Corresponds to the `<var_def>` non-terminal.
     fn parse_var_def(&mut self, let_kw: Span) -> Result<Sp<VarDef>, DErr> {
         let name = self.expect_id()?;
         let equals = self.expect(TokenKind::Equals)?;

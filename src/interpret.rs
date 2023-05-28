@@ -83,26 +83,30 @@ impl Interpreter {
             }
             Expression::Literal(lit) => (*lit).into(),
             Expression::Variable(var) => self.lookup_variable(span, var)?,
-            Expression::FunctionCall { name, args, .. } => {
+            Expression::FunctionCall { expr, args, .. } => {
+                let Expression::Variable(ref name) = **(expr.inner()) else {
+                    return Err(DErr::new_err("arbitrary function expressions not supported", expr.span()));
+                };
+
                 let evaled_args = args
                     .iter()
                     .map(|(arg, _)| self.interpret_expr(arg.as_ref()))
                     .collect::<Result<Vec<_>, DErr>>()?;
 
                 if let [Value::Float(arg)] = evaled_args[..] {
-                    if name.inner() == "print" {
+                    if name == "print" {
                         println!("{arg}");
                         return Ok(Value::Unit);
                     }
 
-                    if let Some(function) = Self::lookup_simple_float_function(name.inner()) {
+                    if let Some(function) = Self::lookup_simple_float_function(name) {
                         return Ok(Value::Float(function(arg)));
                     }
                 }
 
                 return Err(DErr::new_err(
                     format!("unknown function `{name}`"),
-                    name.span(),
+                    expr.span(),
                 ));
             }
         })

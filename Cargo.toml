@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 autotests = false
 
-[dependencies]
+[features]
+ast-debug = []
 
 [[test]]
 name = "regressions"
 harness = false
+required-features = ["ast-debug"]

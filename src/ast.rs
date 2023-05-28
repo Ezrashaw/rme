@@ -1,6 +1,8 @@
 use crate::{lexer, Sp, SpBox, Span};
 
+#[cfg(feature = "ast-debug")]
 pub mod debug;
+
 mod display;
 
 pub struct Ast {
@@ -40,7 +42,7 @@ pub enum Expression {
     Literal(lexer::Literal),
     Variable(String),
     FunctionCall {
-        name: Sp<String>,
+        expr: SpBox<Expression>,
         args: Vec<(Sp<Expression>, Option<Span>)>,
         open: Span,
         close: Span,
@@ -73,7 +75,13 @@ impl Expression {
 
     pub fn is_print_expr(&self) -> bool {
         match self {
-            Self::FunctionCall { name, .. } => name.inner() == "print",
+            Self::FunctionCall { expr, .. } => {
+                if let Self::Variable(name) = expr.unbox().inner() {
+                    name == "print"
+                } else {
+                    false
+                }
+            }
             _ => false,
         }
     }

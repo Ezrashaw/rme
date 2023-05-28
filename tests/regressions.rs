@@ -1,8 +1,6 @@
 #![feature(test)]
 extern crate test;
 
-extern crate rme;
-
 use lexer::LexerTests;
 use parser::ParserTests;
 use std::{

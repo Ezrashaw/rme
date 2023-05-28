@@ -81,7 +81,7 @@ impl<'inp> Lexer<'inp> {
     /// `span_offset` can be used to ensure correct (unique) [`Span`]s, even
     /// when previously lexed (by a different instance) input exists.
     #[must_use]
-    pub fn new(input: &'inp str, span_offset: usize) -> Self {
+    pub const fn new(input: &'inp str, span_offset: usize) -> Self {
         Self {
             input: input.as_bytes(),
             position: 0,
@@ -91,7 +91,7 @@ impl<'inp> Lexer<'inp> {
 
     /// Creates a new span, ending at the current position, respecting the
     /// `span_offset`.
-    fn new_span(&self, start: usize) -> Span {
+    const fn new_span(&self, start: usize) -> Span {
         Span::new(start + self.span_offset, self.position + self.span_offset)
     }
 

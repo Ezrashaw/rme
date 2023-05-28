@@ -67,7 +67,7 @@ impl TokenKind {
     /// The caller should wrap the returned value in backticks (`` `...` ``)
     /// before displaying in a diagnostic.
     #[must_use]
-    pub fn diag_str(&self) -> &'static str {
+    pub const fn diag_str(&self) -> &'static str {
         match self {
             Self::Literal(_) => "<float literal>",
             Self::Identifier(_) => "<identifier>",
@@ -153,7 +153,7 @@ impl Keyword {
     /// Derived function for getting the "diagnostic-friendly" representation
     /// of a token. See the docs on [`TokenKind::diag_str`].
     #[must_use]
-    pub fn diag_str(&self) -> &'static str {
+    pub const fn diag_str(&self) -> &'static str {
         match self {
             Self::Let => "let",
             Self::Fn => "fn",
