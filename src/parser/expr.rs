@@ -1,7 +1,7 @@
 use crate::{
-    ast::{BinOperator, Expression, UnOperator},
+    ast::{BinOperator, Expression, FnCallArg, UnOperator},
     parser::Parser,
-    DErr, Sp, Span, Token, TokenKind,
+    DErr, Sp, Token, TokenKind,
 };
 
 type ExprRes = Result<Sp<Expression>, DErr>;
@@ -118,11 +118,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             TokenKind::Literal(lit) => Sp::new(Expression::Literal(lit), tok_span),
             TokenKind::Identifier(id) => Sp::new(Expression::Variable(id), tok_span),
             _ => {
-                // The only(?) way to get here is to fall through from above,
-                // therefore we can be certain that no other tokens have been
-                // parsed (as part of the current expression). Therefore, the
-                // word "expression" is used, as opposed to something more
-                // local like "factor."
+                // The word "expression" is used, as opposed to something more
+                // local like "factor" because it conveys intent better and an
+                // expression is valid here, it'll just be parsed by a
+                // production from above instead.
                 return Err(Self::create_expected_err(
                     "expression",
                     Token::new(tok, tok_span),
@@ -134,7 +133,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     /// Parses a function call's arguments (excluding parentheses).
     ///
     /// Corresponds to the `<fn_call_args>` non-terminal.
-    fn parse_fn_call_args(&mut self) -> Result<Vec<(Sp<Expression>, Option<Span>)>, DErr> {
+    fn parse_fn_call_args(&mut self) -> Result<Vec<FnCallArg>, DErr> {
         let mut args = Vec::new();
 
         // We must immediately short-circuit if we see a closing parenthesis;

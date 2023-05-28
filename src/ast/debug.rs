@@ -128,7 +128,7 @@ pub fn dbg_expr(
             writeln!(w, "FunctionCall@{:?}", self_.span())?;
 
             write!(w, "{indent}expr: ")?;
-            dbg_expr(expr.unbox(), w, indent)?;
+            dbg_expr(expr.unbox(), w, indent.mv())?;
             writeln!(w, "{indent}open: {open:?}")?;
             writeln!(w, "{indent}close: {close:?}")?;
 

@@ -1,0 +1,19 @@
+1 - 2 * 3 + 4 / 5;
+
+---AST Statement (semi: 17..18) #0---
+Statement(Expression)@0..17
+| BinaryOp@0..17
+| | op: Add@10..11
+| | lhs: BinaryOp@0..9
+| | | op: Sub@2..3
+| | | lhs: Float(1.0)@0..1
+| | | rhs: BinaryOp@4..9
+| | | | op: Mul@6..7
+| | | | lhs: Float(2.0)@4..5
+| | | | rhs: Float(3.0)@8..9
+| | rhs: BinaryOp@12..17
+| | | op: Div@14..15
+| | | lhs: Float(4.0)@12..13
+| | | rhs: Float(5.0)@16..17
+-------
+

@@ -1,0 +1,20 @@
+1 + -1 / 5! * 2;
+
+---AST Statement (semi: 15..16) #0---
+Statement(Expression)@0..15
+| BinaryOp@0..15
+| | op: Add@2..3
+| | lhs: Float(1.0)@0..1
+| | rhs: BinaryOp@4..15
+| | | op: Mul@12..13
+| | | lhs: BinaryOp@4..11
+| | | | op: Div@7..8
+| | | | lhs: UnaryOp@4..6
+| | | | | op: Negation@4..5
+| | | | | expr: Float(1.0)@5..6
+| | | | rhs: UnaryOp@9..11
+| | | | | op: Factorial@10..11
+| | | | | expr: Float(5.0)@9..10
+| | | rhs: Float(2.0)@14..15
+-------
+

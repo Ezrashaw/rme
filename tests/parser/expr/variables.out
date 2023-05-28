@@ -1,0 +1,41 @@
+x;
+x + 5;
+-x + 5;
+(-x) + 1;
+
+---AST Statement (semi: 1..2) #0---
+Statement(Expression)@0..1
+| Variable("x")@0..1
+-------
+
+---AST Statement (semi: 8..9) #1---
+Statement(Expression)@3..8
+| BinaryOp@3..8
+| | op: Add@5..6
+| | lhs: Variable("x")@3..4
+| | rhs: Float(5.0)@7..8
+-------
+
+---AST Statement (semi: 16..17) #2---
+Statement(Expression)@10..16
+| BinaryOp@10..16
+| | op: Add@13..14
+| | lhs: UnaryOp@10..12
+| | | op: Negation@10..11
+| | | expr: Variable("x")@11..12
+| | rhs: Float(5.0)@15..16
+-------
+
+---AST Statement (semi: 26..27) #3---
+Statement(Expression)@18..26
+| BinaryOp@18..26
+| | op: Add@23..24
+| | lhs: Paren@18..22
+| | | open: 18..19
+| | | close: 21..22
+| | | expr: UnaryOp@19..21
+| | | | op: Negation@19..20
+| | | | expr: Variable("x")@20..21
+| | rhs: Float(1.0)@25..26
+-------
+

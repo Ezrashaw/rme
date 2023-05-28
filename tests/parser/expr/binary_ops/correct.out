@@ -1,0 +1,37 @@
+1 + 1;
+1 - 1;
+1 * 1;
+1 / 1;
+
+---AST Statement (semi: 5..6) #0---
+Statement(Expression)@0..5
+| BinaryOp@0..5
+| | op: Add@2..3
+| | lhs: Float(1.0)@0..1
+| | rhs: Float(1.0)@4..5
+-------
+
+---AST Statement (semi: 12..13) #1---
+Statement(Expression)@7..12
+| BinaryOp@7..12
+| | op: Sub@9..10
+| | lhs: Float(1.0)@7..8
+| | rhs: Float(1.0)@11..12
+-------
+
+---AST Statement (semi: 19..20) #2---
+Statement(Expression)@14..19
+| BinaryOp@14..19
+| | op: Mul@16..17
+| | lhs: Float(1.0)@14..15
+| | rhs: Float(1.0)@18..19
+-------
+
+---AST Statement (semi: 26..27) #3---
+Statement(Expression)@21..26
+| BinaryOp@21..26
+| | op: Div@23..24
+| | lhs: Float(1.0)@21..22
+| | rhs: Float(1.0)@25..26
+-------
+
