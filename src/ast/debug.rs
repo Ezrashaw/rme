@@ -52,7 +52,7 @@ fn dbg_stmt(stmt: &Sp<Statement>, w: &mut impl io::Write, indent: AstIndent) -> 
             writeln!(w, "Statement(Expression)@{:?}", stmt.span())?;
 
             write!(w, "{indent}")?;
-            dbg_expr(expr, w, indent.mv())
+            dbg_expr(expr.as_ref(), w, indent.mv())
         }
         Statement::VarDef(var_def) => {
             writeln!(w, "Statement(VarDef)@{:?}", stmt.span())?;
@@ -76,11 +76,11 @@ pub fn dbg_var_def(
     writeln!(w, "{indent}equals: {:?}", var_def.equals)?;
 
     write!(w, "{indent}expr: ")?;
-    dbg_expr(&var_def.expr, w, indent.mv())
+    dbg_expr(var_def.expr.as_ref(), w, indent.mv())
 }
 
 pub fn dbg_expr(
-    expr: &Sp<Expression>,
+    expr: Sp<&Expression>,
     w: &mut impl io::Write,
     indent: AstIndent,
 ) -> io::Result<()> {
@@ -92,7 +92,7 @@ pub fn dbg_expr(
             writeln!(w, "{indent}close: {close:?}")?;
 
             write!(w, "{indent}expr: ")?;
-            dbg_expr(expr, w, indent.mv())
+            dbg_expr(expr.unbox(), w, indent.mv())
         }
         Expression::UnaryOp { op, expr } => {
             writeln!(w, "UnaryOp@{:?}", expr.span())?;
@@ -100,7 +100,7 @@ pub fn dbg_expr(
             writeln!(w, "{indent}op: {op:?}")?;
 
             write!(w, "{indent}expr: ")?;
-            dbg_expr(expr, w, indent.mv())
+            dbg_expr(expr.unbox(), w, indent.mv())
         }
         Expression::Literal(lit) => {
             writeln!(w, "{lit:?}@{:?}", expr.span())
@@ -111,10 +111,10 @@ pub fn dbg_expr(
             writeln!(w, "{indent}op: {op:?}")?;
 
             write!(w, "{indent}lhs: ")?;
-            dbg_expr(lhs, w, indent.mv())?;
+            dbg_expr(lhs.unbox(), w, indent.mv())?;
 
             write!(w, "{indent}rhs: ")?;
-            dbg_expr(rhs, w, indent.mv())
+            dbg_expr(rhs.unbox(), w, indent.mv())
         }
         Expression::Variable(var) => {
             writeln!(w, "Variable({var:?})@{:?}", expr.span())
@@ -134,7 +134,7 @@ pub fn dbg_expr(
                 writeln!(w, "{indent}arg #{idx} (comma): {comma:?}")?;
 
                 write!(w, "{indent}arg #{idx}: ")?;
-                dbg_expr(arg, w, indent.mv())?;
+                dbg_expr(arg.as_ref(), w, indent.mv())?;
             }
 
             Ok(())

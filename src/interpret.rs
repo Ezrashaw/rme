@@ -26,7 +26,7 @@ impl Interpreter {
         match stmt {
             Statement::Expr(expr) => {
                 // let is_print = expr.is_print_expr();
-                let val = self.interpret_expr(&expr)?;
+                let val = self.interpret_expr(expr.as_ref())?;
                 Ok(val)
             }
             Statement::VarDef(var_stmt) => self
@@ -38,7 +38,7 @@ impl Interpreter {
     fn interpret_var_def(&mut self, var_def: VarDef) -> Result<(), DErr> {
         let (var_name, var_span) = var_def.name.into_parts();
         let var_value = self.variables.get(&var_name).cloned();
-        let value = self.interpret_expr(&var_def.expr)?;
+        let value = self.interpret_expr(var_def.expr.as_ref())?;
 
         match var_value {
             // correct variable definition
@@ -66,18 +66,18 @@ impl Interpreter {
         }
     }
 
-    fn interpret_expr(&self, expr: &Sp<Expression>) -> Result<Value, DErr> {
+    fn interpret_expr(&self, expr: Sp<&Expression>) -> Result<Value, DErr> {
         let (expr, span) = expr.as_parts();
         Ok(match expr {
-            Expression::Paren { expr, .. } => self.interpret_expr(expr)?,
+            Expression::Paren { expr, .. } => self.interpret_expr(expr.unbox())?,
             Expression::BinaryOp { lhs, rhs, op } => {
-                let lhv = self.interpret_expr(lhs)?;
-                let rhv = self.interpret_expr(rhs)?;
+                let lhv = self.interpret_expr(lhs.unbox())?;
+                let rhv = self.interpret_expr(rhs.unbox())?;
 
                 Value::eval_binop(Sp::new(lhv, lhs.span()), Sp::new(rhv, rhs.span()), *op)?
             }
             Expression::UnaryOp { expr, op } => {
-                let expr_val = self.interpret_expr(expr)?;
+                let expr_val = self.interpret_expr(expr.unbox())?;
 
                 Value::eval_unop(Sp::new(expr_val, expr.span()), *op)?
             }
@@ -86,7 +86,7 @@ impl Interpreter {
             Expression::FunctionCall { name, args, .. } => {
                 let evaled_args = args
                     .iter()
-                    .map(|(arg, _)| self.interpret_expr(arg))
+                    .map(|(arg, _)| self.interpret_expr(arg.as_ref()))
                     .collect::<Result<Vec<_>, DErr>>()?;
 
                 if let [Value::Float(arg)] = evaled_args[..] {

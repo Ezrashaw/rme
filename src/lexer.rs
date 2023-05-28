@@ -7,30 +7,56 @@ pub use token::*;
 
 /// Fully lexes the provided input (with a span offset), using the [`Lexer`]
 /// structure.
+/// 
+/// Note that you *must* iterate the returned [`Vec`], and handle every
+/// [`Diag`] emitted.
 ///
 /// # Examples
-///
+/// 
+/// ## In a `for` loop:
 /// ```
 /// # use rme::{TokenKind, Span};
-///
-/// let tokens = rme::lex("++", 0);
+/// let tokens = rme::lex("+++", 0);
 /// for token in tokens {
 ///     assert_eq!(token?.into_parts().0, TokenKind::Plus);
 /// }
 /// # Ok::<(), rme::DErr>(())
 /// ```
-///
+/// 
+/// ## Directly with [`Vec`]
 /// ```
-/// # use rme::{TokenKind, Span};
-///
-/// let tokens = rme::lex(";", 10);
-/// let span = tokens.into_iter()
-///     .next()
-///     .expect("lexer returned no tokens")?
-///     .span();
+/// # use rme::{Token, Span};
+/// let mut tokens = rme::lex(";", 10);
+/// let span = tokens.pop().unwrap()?.span();
 /// assert_eq!(span, Span::new(10, 11));
 /// # Ok::<(), rme::DErr>(())
 /// ```
+/// 
+/// ## Incorrectly handling [`Diag`]s
+/// ```should_panic
+/// // we *must* handle each error, dropping isn't OK
+/// let tokens = rme::lex("~", 0);
+/// drop(tokens); // PANIC: we dropped a `Diag` without emitting it
+/// # Ok::<(), rme::DErr>(())
+/// ```
+/// 
+/// ## Incorrectly handling *all* [`Diag`]s
+/// ```should_panic
+/// # use rme::{DErr, Token, SourceMap};
+/// let input = "~~";
+/// 
+/// // PANIC: collecting `Result`s like this drops any other errors, invoking
+/// //        `Diag`'s drop guard.
+/// let tokens = rme::lex(input, 0).into_iter().collect::<Result<Vec<Token>, DErr>>();
+/// match tokens {
+///     Ok(tokens) => { /* ... */ },
+///
+///     // this is all good, right?
+///     Err(err) => err.emit(&SourceMap::from_input(input.to_owned())),
+/// }
+/// # Ok::<(), rme::DErr>(())
+/// ```
+#[must_use]
 pub fn lex(input: &str, span_offset: usize) -> Vec<Result<Token, DErr>> {
     let lexer = Lexer::new(input, span_offset);
     lexer.collect()
@@ -54,6 +80,7 @@ impl<'inp> Lexer<'inp> {
     ///
     /// `span_offset` can be used to ensure correct (unique) [`Span`]s, even
     /// when previously lexed (by a different instance) input exists.
+    #[must_use]
     pub fn new(input: &'inp str, span_offset: usize) -> Self {
         Self {
             input: input.as_bytes(),
@@ -117,7 +144,7 @@ impl<'inp> Lexer<'inp> {
                 });
 
                 match id {
-                    // boolean literals aren't offically keywords, but you
+                    // boolean literals aren't officially keywords, but you
                     // can't get an identifier with them 
                     "true" => TokenKind::Literal(Literal::Bool(true)),
                     "false" => TokenKind::Literal(Literal::Bool(false)),

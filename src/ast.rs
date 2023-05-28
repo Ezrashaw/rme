@@ -48,17 +48,13 @@ pub enum Expression {
 }
 
 impl Expression {
-    pub fn new_binop(
-        op: Sp<BinOperator>,
-        lhs: Sp<Self>,
-        rhs: Sp<Self>,
-    ) -> Sp<Self> {
+    pub fn new_binop(op: Sp<BinOperator>, lhs: Sp<Self>, rhs: Sp<Self>) -> Sp<Self> {
         let span = Span::merge(lhs.span(), rhs.span());
         Sp::new(
             Self::BinaryOp {
                 op,
-                lhs: Box::new(lhs),
-                rhs: Box::new(rhs),
+                lhs: lhs.map_inner(Box::new),
+                rhs: rhs.map_inner(Box::new),
             },
             span,
         )
@@ -69,7 +65,7 @@ impl Expression {
         Sp::new(
             Self::UnaryOp {
                 op,
-                expr: Box::new(expr),
+                expr: expr.map_inner(Box::new),
             },
             span,
         )

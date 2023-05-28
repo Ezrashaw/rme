@@ -1,7 +1,4 @@
-use std::{
-    cmp,
-    fmt::{self, Debug},
-};
+use std::{cmp, fmt};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {
@@ -60,7 +57,7 @@ impl Span {
     }
 }
 
-impl Debug for Span {
+impl fmt::Debug for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}..{}", self.start, self.end)
     }
@@ -107,5 +104,62 @@ impl SourceMap {
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Copy, Hash)]
+pub struct Sp<T>(T, Span);
+
+impl<T> Sp<T> {
+    pub fn new(val: T, span: Span) -> Self {
+        Self(val, span)
+    }
+
+    pub fn new_boxed(val: T, span: Span) -> SpBox<T> {
+        Sp(Box::new(val), span)
+    }
+
+    pub fn as_ref(&self) -> Sp<&T> {
+        Sp::new(self.inner(), self.span())
+    }
+
+    pub fn map_inner<E>(self, map: impl FnOnce(T) -> E) -> Sp<E> {
+        Sp::new(map(self.0), self.1)
+    }
+
+    pub fn inner(&self) -> &T {
+        &self.0
+    }
+
+    pub fn span(&self) -> Span {
+        self.1
+    }
+
+    pub fn into_parts(self) -> (T, Span) {
+        (self.0, self.1)
+    }
+
+    pub fn as_parts(&self) -> (&T, Span) {
+        (&self.0, self.1)
+    }
+}
+
+impl<T: fmt::Display> fmt::Display for Sp<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.inner().fmt(f)
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for Sp<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}@{:?}", self.inner(), self.span())
+    }
+}
+
+pub type SpBox<T> = Sp<Box<T>>;
+
+impl<T> SpBox<T> {
+    pub fn unbox(&self) -> Sp<&T> {
+        Sp::new(self.inner(), self.span())
     }
 }

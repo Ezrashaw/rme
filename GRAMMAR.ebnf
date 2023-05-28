@@ -17,7 +17,7 @@
 <term>                ::= <factor> (("*" | "/") <factor>)*
 <unary_prefix>        ::= "-" <unary_prefix> | <unary_postfix>
 <unary_postfix>       ::= <factor> "!"*
-<factor>              ::= <literal> | "(" <expression> ")" | <identifier> <fn_args>?
+<factor>              ::= <literal> | "(" <expression> ")" | <identifier> <fn_call_args>?
 
 /* complex grammar constructs */
-<fn_args>             ::= "(" (<expression> ("," <expression>)*)? ")"
+<fn_call_args>             ::= "(" (<expression> ("," <expression>)*)? ")"

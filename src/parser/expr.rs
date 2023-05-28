@@ -5,37 +5,59 @@ use crate::{
 };
 
 impl<I: Iterator<Item = Token>> Parser<I> {
+    /// Parses an expression.
+    ///
+    /// Corresponds to the `<expression>` non-terminal.
     pub(super) fn parse_expr(&mut self) -> Result<Sp<Expression>, DErr> {
         self.parse_additive_expr()
     }
 
-    parse_binop!(parse_additive_expr, parse_term, [
-        TokenKind::Plus => BinOperator::Add,
-        TokenKind::Minus => BinOperator::Sub
-    ]);
+    parse_binop! {
+        /// Parses an additive expression. Parses at the addition and
+        /// subtraction precedence level.
+        ///
+        /// Corresponds to the `<additive-expression>` non-terminal.
+        fn parse_additive_expr => parse_term + [
+            TokenKind::Plus => BinOperator::Add,
+            TokenKind::Minus => BinOperator::Sub
+        ]
+    }
 
-    parse_binop!(parse_term, parse_unary_prefix, [
-        TokenKind::Star => BinOperator::Mul,
-        TokenKind::Slash => BinOperator::Div
-    ]);
+    parse_binop! {
+        /// Parses a term. Parses at the multiplication and division precedence
+        /// level.
+        ///
+        /// Corresponds to the `<term>` non-terminal.
+        fn parse_term => parse_unary_prefix + [
+            TokenKind::Star => BinOperator::Mul,
+            TokenKind::Slash => BinOperator::Div
+        ]
+    }
 
-    // BUG: this doesn't give the correct span
+    /// Parses a unary prefix operator expression. Currently, this is only
+    /// unary negation.
+    ///
+    /// Corresponds to the `<unary_prefix>` non-terminal.
     fn parse_unary_prefix(&mut self) -> Result<Sp<Expression>, DErr> {
         if let Some(op_span) = self.eat(TokenKind::Minus) {
             let expr = self.parse_unary_prefix()?;
-            Ok(Expression::new_unop(
-                Sp::new(UnOperator::Negation, op_span),
-                expr,
-            ))
+            let expr = Expression::new_unop(Sp::new(UnOperator::Negation, op_span), expr);
+
+            Ok(expr)
         } else {
             self.parse_unary_postfix()
         }
     }
 
-    // BUG: this doesn't give the correct span
+    /// Parses a unary postfix operator expression. Currently, this is only
+    /// the factorial operator.
+    ///
+    /// Corresponds to the `<unary_postfix>` non-terminal.
     fn parse_unary_postfix(&mut self) -> Result<Sp<Expression>, DErr> {
         let mut expr = self.parse_factor()?;
 
+        // Unary postfix operators are inherently left-recursive. We have to
+        // remove left recursion (with a loop) to be able to parse them.
         while let Some(bang_span) = self.eat(TokenKind::Bang) {
             expr = Expression::new_unop(Sp::new(UnOperator::Factorial, bang_span), expr);
         }
@@ -43,18 +65,26 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         Ok(expr)
     }
 
+    /// Parses a "factor".
+    /// This contains the highest precedence rules:
+    /// - parenthesized expressions
+    /// - function calls
+    /// - variable references
+    /// - literals
+    ///
+    /// Corresponds to the `<factor>` non-terminal.
     fn parse_factor(&mut self) -> Result<Sp<Expression>, DErr> {
         let (tok, tok_span) = self.next()?.into_parts();
 
         Ok(match tok {
             TokenKind::ParenOpen => {
-                let expr = self.parse_expr()?;
+                let expr = self.parse_expr()?.map_inner(Box::new);
                 let close = self.expect(TokenKind::ParenClose)?;
 
                 let expr = Expression::Paren {
                     open: tok_span,
                     close,
-                    expr: Box::new(expr),
+                    expr,
                 };
 
                 Sp::new(expr, Span::merge(tok_span, close))
@@ -62,7 +92,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             TokenKind::Literal(lit) => Sp::new(Expression::Literal(lit), tok_span),
             TokenKind::Identifier(id) => {
                 if let Some(open_paren) = self.eat(TokenKind::ParenOpen) {
-                    self.parse_fn_call(Sp::new(id, tok_span), open_paren)?
+                    self.parse_fn_call_args(Sp::new(id, tok_span), open_paren)?
                 } else {
                     Sp::new(Expression::Variable(id), tok_span)
                 }
@@ -76,7 +106,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         })
     }
 
-    fn parse_fn_call(
+    fn parse_fn_call_args(
         &mut self,
         name: Sp<String>,
         open_paren: Span,
@@ -109,7 +139,8 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 }
 
 macro_rules! parse_binop {
-    ($name:ident, $lower:ident, [$($tok:pat => $op:expr),+]) => {
+    ($(#[$attr:meta])* fn $name:ident => $lower:ident + [$($tok:pat => $op:expr),+]) => {
+        $(#[$attr])*
         fn $name(&mut self) -> Result<Sp<Expression>, DErr> {
             let mut expr = self.$lower()?;
 
