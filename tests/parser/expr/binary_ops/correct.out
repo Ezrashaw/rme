@@ -34,4 +34,3 @@ Statement(Expression)@21..26
 | | lhs: Float(1.0)@21..22
 | | rhs: Float(1.0)@25..26
 -------
-

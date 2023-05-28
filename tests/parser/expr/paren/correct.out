@@ -51,4 +51,3 @@ Statement(Expression)@21..28
 | | | | | op: Factorial@25..26
 | | | | | expr: Float(1.0)@24..25
 -------
-

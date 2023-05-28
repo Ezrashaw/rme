@@ -16,4 +16,3 @@ Statement(Expression)@0..17
 | | | lhs: Float(4.0)@12..13
 | | | rhs: Float(5.0)@16..17
 -------
-
