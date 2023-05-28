@@ -8,6 +8,7 @@ use crate::{
 mod expr;
 
 pub fn parse(input: &str, span_offset: usize) -> Result<Ast, DErr> {
+    // FIXME: there is a panic here with using collect.
     let tokens = Lexer::new(input, span_offset).collect::<Result<Vec<Token>, DErr>>()?;
 
     let parser = Parser::new(tokens.into_iter());

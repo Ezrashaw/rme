@@ -1,6 +1,5 @@
 use rme::{
-    ast::Statement, parser::Parser, DErr, Interpreter, Lexer, SourceMap, Sp, SubDiag, SubDiagLevel,
-    Token,
+    ast::Statement, DErr, Interpreter, Lexer, Parser, SourceMap, Sp, SubDiag, SubDiagLevel, Token,
 };
 use std::io::{stdin, stdout, Write};
 

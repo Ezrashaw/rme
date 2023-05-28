@@ -8,5 +8,4 @@ autotests = false
 
 [[test]]
 name = "regressions"
-doc = true
 harness = false

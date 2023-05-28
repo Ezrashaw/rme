@@ -1,8 +1,7 @@
 use crate::RegressionTests;
 use rme::{
     ast::{self, debug::AstIndent},
-    parser::parse,
-    SourceMap,
+    parse, SourceMap,
 };
 use std::io;
 
