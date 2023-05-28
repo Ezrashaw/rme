@@ -5,6 +5,9 @@ edition = "2021"
 autotests = false
 
 [features]
+# `regressions` test doesn't work without this, ideally this wouldn't be enabled
+# by default, but there is no way to enable it just for the test.
+default = ["ast-debug"]
 ast-debug = []
 
 [[test]]

@@ -1,0 +1,54 @@
+(1);
+((1));
+((-1)!);
+(-(1!));
+
+---AST Statement (semi: 3..4) #0---
+Statement(Expression)@0..3
+| Paren@0..3
+| | open: 0..1
+| | close: 2..3
+| | expr: Float(1.0)@1..2
+-------
+
+---AST Statement (semi: 10..11) #1---
+Statement(Expression)@5..10
+| Paren@5..10
+| | open: 5..6
+| | close: 9..10
+| | expr: Paren@6..9
+| | | open: 6..7
+| | | close: 8..9
+| | | expr: Float(1.0)@7..8
+-------
+
+---AST Statement (semi: 19..20) #2---
+Statement(Expression)@12..19
+| Paren@12..19
+| | open: 12..13
+| | close: 18..19
+| | expr: UnaryOp@13..18
+| | | op: Factorial@17..18
+| | | expr: Paren@13..17
+| | | | open: 13..14
+| | | | close: 16..17
+| | | | expr: UnaryOp@14..16
+| | | | | op: Negation@14..15
+| | | | | expr: Float(1.0)@15..16
+-------
+
+---AST Statement (semi: 28..29) #3---
+Statement(Expression)@21..28
+| Paren@21..28
+| | open: 21..22
+| | close: 27..28
+| | expr: UnaryOp@22..27
+| | | op: Negation@22..23
+| | | expr: Paren@23..27
+| | | | open: 23..24
+| | | | close: 26..27
+| | | | expr: UnaryOp@24..26
+| | | | | op: Factorial@25..26
+| | | | | expr: Float(1.0)@24..25
+-------
+

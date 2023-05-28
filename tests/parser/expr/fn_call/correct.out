@@ -1,0 +1,57 @@
+foo();
+5(1);
+(1 + 1)(1, 2);
+foo()(1)();
+
+---AST Statement (semi: 5..6) #0---
+Statement(Expression)@0..5
+| FunctionCall@0..5
+| | expr: Variable("foo")@0..3
+| | open: 3..4
+| | close: 4..5
+-------
+
+---AST Statement (semi: 11..12) #1---
+Statement(Expression)@7..11
+| FunctionCall@7..11
+| | expr: Float(5.0)@7..8
+| | open: 8..9
+| | close: 10..11
+| | arg #0 (comma): None
+| | arg #0: Float(1.0)@9..10
+-------
+
+---AST Statement (semi: 26..27) #2---
+Statement(Expression)@13..26
+| FunctionCall@13..26
+| | expr: Paren@13..20
+| | | open: 13..14
+| | | close: 19..20
+| | | expr: BinaryOp@14..19
+| | | | op: Add@16..17
+| | | | lhs: Float(1.0)@14..15
+| | | | rhs: Float(1.0)@18..19
+| | open: 20..21
+| | close: 25..26
+| | arg #0 (comma): Some(22..23)
+| | arg #0: Float(1.0)@21..22
+| | arg #1 (comma): None
+| | arg #1: Float(2.0)@24..25
+-------
+
+---AST Statement (semi: 38..39) #3---
+Statement(Expression)@28..38
+| FunctionCall@28..38
+| | expr: FunctionCall@28..36
+| | | expr: FunctionCall@28..33
+| | | | expr: Variable("foo")@28..31
+| | | | open: 31..32
+| | | | close: 32..33
+| | | open: 33..34
+| | | close: 35..36
+| | | arg #0 (comma): None
+| | | arg #0: Float(1.0)@34..35
+| | open: 36..37
+| | close: 37..38
+-------
+

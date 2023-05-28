@@ -36,9 +36,12 @@ pub struct VarDef {
 
 impl VarDef {
     pub fn spanify(self) -> Sp<Self> {
-        Sp::new(self, Span::merge(self.let_kw, self.expr.span()))
+        let span = Span::merge(self.let_kw, self.expr.span());
+        Sp::new(self, span)
     }
 }
+
+pub type FnCallArg = (Sp<Expression>, Option<Span>);
 
 #[derive(Clone)]
 pub enum Expression {
@@ -60,7 +63,7 @@ pub enum Expression {
     Variable(String),
     FunctionCall {
         expr: SpBox<Expression>,
-        args: Vec<(Sp<Expression>, Option<Span>)>,
+        args: Vec<FnCallArg>,
         open: Span,
         close: Span,
     },
