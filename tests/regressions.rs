@@ -158,7 +158,7 @@ const TEST_OPTIONS: TestOpts = TestOpts {
     run_tests: true,
     bench_benchmarks: false,
     logfile: None,
-    nocapture: false,
+    nocapture: true,
     color: ColorConfig::AlwaysColor,
     format: OutputFormat::Pretty,
     shuffle: false,
