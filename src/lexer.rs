@@ -125,6 +125,11 @@ impl<'inp> Lexer<'inp> {
         let span_start = self.position - 1;
 
         let kind = match ch {
+            // multi-character tokens
+            // Note how these are before their single-character partners, so
+            // that single characters aren't lexed when a multi exists.
+            _ if self.lex_multi_char(b"==") => TokenKind::DoubleEquals,
+
             // single character "easy" tokens
             b'=' => TokenKind::Equals,
             b',' => TokenKind::Comma,
@@ -136,6 +141,8 @@ impl<'inp> Lexer<'inp> {
             b'*' => TokenKind::Star,
             b'/' => TokenKind::Slash,
             b'!' => TokenKind::Bang,
+            b'<' => TokenKind::LeftArrow,
+            b'>' => TokenKind::RightArrow,
 
             // identifiers (and keywords/booleans)
             ch if ch.is_ascii_alphabetic() || ch == b'_' => {
@@ -223,12 +230,28 @@ impl<'inp> Lexer<'inp> {
         // SAFETY: It is a safety invariant of `Lexer` that its input is ASCII.
         unsafe { std::str::from_utf8_unchecked(&self.input[start_pos..self.position]) }
     }
+
+    /// Checks if the given multi-character token exists at the current
+    /// position.
+    ///
+    /// If so, the input is advanced passed the token and `true` is returned,
+    /// otherwise, `false` is returned and the position is not advanced.
+    fn lex_multi_char(&mut self, multi_char: &[u8]) -> bool {
+        let pos = self.position - 1;
+
+        if let Some(tok) = &self.input.get(pos..(pos + multi_char.len())) && multi_char == *tok {
+            self.position += multi_char.len();
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl Iterator for Lexer<'_> {
     type Item = Result<Token, DErr>;
 
-    /// Repeatedly calls `Lexer::next_token`
+    /// Repeatedly calls `Lexer::next_token`.
     ///
     /// As per `next_token`:
     /// - If the return value is `None`, then we have reached the end of the

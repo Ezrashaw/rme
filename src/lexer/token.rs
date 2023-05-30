@@ -59,6 +59,12 @@ pub enum TokenKind {
     Slash,
     /// Exclamation mark (`!`)
     Bang,
+    /// Less than sign (`<`)
+    LeftArrow,
+    /// Greater than sign (`>`)
+    RightArrow,
+    /// 2x Equals (`==`)
+    DoubleEquals,
 }
 
 impl TokenKind {
@@ -81,6 +87,9 @@ impl TokenKind {
             Self::Star => "*",
             Self::Slash => "/",
             Self::Bang => "!",
+            Self::DoubleEquals => "==",
+            Self::LeftArrow => "<",
+            Self::RightArrow => ">",
             Self::Keyword(kw) => kw.diag_str(),
         }
     }
