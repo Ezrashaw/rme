@@ -7,12 +7,12 @@ pub use token::*;
 
 /// Fully lexes the provided input (with a span offset), using the [`Lexer`]
 /// structure.
-/// 
+///
 /// Note that you *must* iterate the returned [`Vec`], and handle every
 /// [`Diag`] emitted.
 ///
 /// # Examples
-/// 
+///
 /// ## In a `for` loop:
 /// ```
 /// # use rme::{TokenKind, Span};
@@ -22,7 +22,7 @@ pub use token::*;
 /// }
 /// # Ok::<(), rme::DErr>(())
 /// ```
-/// 
+///
 /// ## Directly with [`Vec`]
 /// ```
 /// # use rme::{Token, Span};
@@ -31,7 +31,7 @@ pub use token::*;
 /// assert_eq!(span, Span::new(10, 11));
 /// # Ok::<(), rme::DErr>(())
 /// ```
-/// 
+///
 /// ## Incorrectly handling [`Diag`]s
 /// ```should_panic
 /// // we *must* handle each error, dropping isn't OK
@@ -39,15 +39,17 @@ pub use token::*;
 /// drop(tokens); // PANIC: we dropped a `Diag` without emitting it
 /// # Ok::<(), rme::DErr>(())
 /// ```
-/// 
+///
 /// ## Incorrectly handling *all* [`Diag`]s
 /// ```should_panic
 /// # use rme::{DErr, Token, SourceMap};
 /// let input = "~~";
-/// 
+///
 /// // PANIC: collecting `Result`s like this drops any other errors, invoking
 /// //        `Diag`'s drop guard.
-/// let tokens = rme::lex(input, 0).into_iter().collect::<Result<Vec<Token>, DErr>>();
+/// let tokens = rme::lex(input, 0)
+///     .into_iter()
+///     .collect::<Result<Vec<Token>, DErr>>();
 /// match tokens {
 ///     Ok(tokens) => { /* ... */ },
 ///
@@ -56,6 +58,7 @@ pub use token::*;
 /// }
 /// # Ok::<(), rme::DErr>(())
 /// ```
+// FIXME: maybe this should return an iterator instead?
 #[must_use]
 pub fn lex(input: &str, span_offset: usize) -> Vec<Result<Token, DErr>> {
     let lexer = Lexer::new(input, span_offset);
@@ -146,16 +149,19 @@ impl<'inp> Lexer<'inp> {
 
             // identifiers (and keywords/booleans)
             ch if ch.is_ascii_alphabetic() || ch == b'_' => {
-                let id = self.lex_complex(|ch| {
-                    ch.is_ascii_alphabetic() || ch.is_ascii_digit() || *ch == b'_'
-                });
+                // SAFETY: the provided closure only triggers for ASCII values
+                let id = unsafe {
+                    self.lex_complex(|&ch| {
+                        ch.is_ascii_alphabetic() || ch.is_ascii_digit() || ch == b'_'
+                    })
+                };
 
                 match id {
                     // boolean literals aren't officially keywords, but you
                     // can't get an identifier with them 
                     "true" => TokenKind::Literal(Literal::Bool(true)),
                     "false" => TokenKind::Literal(Literal::Bool(false)),
-                    
+
                     // check if the identifier is a keyword, and return a
                     // lightweight `Keyword`
                     _ if let Ok(kw) = Keyword::from_str(id) => {
@@ -169,7 +175,8 @@ impl<'inp> Lexer<'inp> {
 
             // float literals (note that `.1` is allowed)
             ch if ch.is_ascii_digit() || ch == b'.' => {
-                let literal = self.lex_complex(|&ch| ch.is_ascii_digit() || ch == b'.');
+                // SAFETY: the provided closure only triggers for ASCII values
+                let literal = unsafe { self.lex_complex(|&ch| ch.is_ascii_digit() || ch == b'.') };
 
                 if let Ok(num) = literal.parse::<f32>() {
                     TokenKind::Literal(Literal::Float(num))
@@ -202,8 +209,10 @@ impl<'inp> Lexer<'inp> {
                 return Some(Err(err));
             }
 
-            // return an error if the character doesn't match any tokens
+            // return an error if the character doesn't match the start of any
+            // tokens
             ch => {
+                // 
                 return Some(Err(DErr::new_err(
                     format!("invalid start of token `{}`", ch as char),
                     self.new_span(span_start),
@@ -221,13 +230,23 @@ impl<'inp> Lexer<'inp> {
     ///
     /// Returns a `&str` taken from the input. The input is advanced to the
     /// end of this slice.
-    fn lex_complex(&mut self, cont: for<'a> fn(&'a u8) -> bool) -> &str {
+    ///
+    /// # Safety
+    ///
+    /// The `cont` parameter may not return true for non-ASCII values.
+    unsafe fn lex_complex(&mut self, cont: for<'a> fn(&'a u8) -> bool) -> &str {
         let start_pos = self.position - 1;
         while let Some(ch) = self.peek_char() && cont(&ch) {
+            // it is a safety requirement of this function that this is true,
+            // no harm in checking though
+            debug_assert!(self.peek_char().unwrap().is_ascii());
+
             self.position += 1;
         }
 
-        // SAFETY: It is a safety invariant of `Lexer` that its input is ASCII.
+        // SAFETY: This only corresponds to a range which has been accepted by
+        //         `cont`. The `cont` function is required to uphold this
+        //         functions invariant (must be ASCII).
         unsafe { std::str::from_utf8_unchecked(&self.input[start_pos..self.position]) }
     }
 
@@ -238,9 +257,10 @@ impl<'inp> Lexer<'inp> {
     /// otherwise, `false` is returned and the position is not advanced.
     fn lex_multi_char(&mut self, multi_char: &[u8]) -> bool {
         let pos = self.position - 1;
+        let range = pos..(pos + multi_char.len());
 
-        if let Some(tok) = &self.input.get(pos..(pos + multi_char.len())) && multi_char == *tok {
-            self.position += multi_char.len();
+        if let Some(tok) = &self.input.get(range) && multi_char == *tok {
+            self.position += multi_char.len() - 1;
             true
         } else {
             false
@@ -251,7 +271,7 @@ impl<'inp> Lexer<'inp> {
 impl Iterator for Lexer<'_> {
     type Item = Result<Token, DErr>;
 
-    /// Repeatedly calls `Lexer::next_token`.
+    /// Repeatedly calls `Lexer::next_token` (note this is private).
     ///
     /// As per `next_token`:
     /// - If the return value is `None`, then we have reached the end of the

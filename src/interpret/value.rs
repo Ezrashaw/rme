@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    ast::{BinOperator, UnOperator},
+    ast::{BinOperator, Expression, UnOperator},
     DErr, Diag, Literal, Sp, SubDiag, SubDiagLevel,
 };
 
@@ -9,6 +9,7 @@ use crate::{
 pub enum Type {
     Float,
     Bool,
+    Function,
     Unit,
 }
 
@@ -35,16 +36,18 @@ impl Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Float => write!(f, "float"),
-            Self::Bool => write!(f, "boolean"),
+            Self::Bool => write!(f, "bool"),
+            Self::Function => write!(f, "fn(..)"),
             Self::Unit => write!(f, "()"),
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Value {
     Float(f32),
     Bool(bool),
+    Function(Vec<Sp<String>>, Sp<Expression>),
     Unit,
 }
 
@@ -62,16 +65,18 @@ impl Display for Value {
         match self {
             Self::Float(x) => write!(f, "{x}"),
             Self::Bool(x) => write!(f, "{x}"),
+            Self::Function(_, _) => write!(f, "fn(..)"),
             Self::Unit => write!(f, "()"),
         }
     }
 }
 
 impl Value {
-    pub fn type_of(self) -> Type {
+    pub const fn type_of(&self) -> Type {
         match self {
             Self::Float(_) => Type::Float,
             Self::Bool(_) => Type::Bool,
+            Self::Function(_, _) => Type::Function,
             Self::Unit => Type::Unit,
         }
     }
@@ -84,6 +89,7 @@ impl Value {
                     BinOperator::Sub => lhs - rhs,
                     BinOperator::Mul => lhs * rhs,
                     BinOperator::Div => lhs / rhs,
+                    BinOperator::Eq => return Ok(Self::Bool(lhs == rhs)),
                 };
 
                 Self::Float(val)
@@ -92,8 +98,8 @@ impl Value {
                 let err = Type::operator_error(
                     op.map_inner(|op| format!("`{op:?}` cannot be used on these types")),
                     vec![
-                        (lhs.map_inner(Self::type_of), "LHS"),
-                        (rhs.map_inner(Self::type_of), "RHS"),
+                        (lhs.map_inner(|x| x.type_of()), "LHS"),
+                        (rhs.map_inner(|x| x.type_of()), "RHS"),
                     ],
                 );
 
@@ -119,7 +125,7 @@ impl Value {
                 }
             },
             _ => {
-                let expr_ty = expr.map_inner(Self::type_of);
+                let expr_ty = expr.map_inner(|x| x.type_of());
                 let err = Type::operator_error(
                     op.map_inner(|op| format!("`{op:?}` cannot be used on type `{}`", expr_ty)),
                     vec![(expr_ty, "operand")],

@@ -1,5 +1,5 @@
 use crate::{
-    ast::{BinOperator, Expression, FnCallArg, UnOperator},
+    ast::{BinOperator, Expression, UnOperator},
     parser::Parser,
     DErr, Sp, Token, TokenKind,
 };
@@ -11,7 +11,17 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     ///
     /// Corresponds to the `<expression>` non-terminal.
     pub(super) fn parse_expr(&mut self) -> ExprRes {
-        self.parse_additive_expr()
+        self.parse_equality_expr()
+    }
+
+    parse_binop! {
+        /// Parses an equality expression. Parses at the equals (`==`)
+        /// precedence level.
+        ///
+        /// Corresponds to the `<equality-expression>` non-terminal.
+        fn parse_equality_expr => parse_additive_expr + [
+            TokenKind::DoubleEquals => BinOperator::Eq
+        ]
     }
 
     parse_binop! {
@@ -69,22 +79,16 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
     /// Parses a function call.
     ///
-    /// Note that some of the work here is delegated to
-    /// [`Parser::parse_fn_call_args`] for code simplicity.
-    ///
     /// Corresponds to the `<fn_call>` non-terminal.
     fn parse_fn_call(&mut self) -> ExprRes {
         let mut expr = self.parse_factor()?;
 
         while let Some(open) = self.eat(TokenKind::ParenOpen) {
-            let args = self.parse_fn_call_args()?;
-            let close = self.expect(TokenKind::ParenClose)?;
-
             let fn_call = Expression::FunctionCall {
                 expr: expr.map_inner(Box::new),
-                args,
                 open,
-                close,
+                args: self.parse_comma_delimited(Self::parse_expr)?,
+                close: self.expect(TokenKind::ParenClose)?,
             };
             expr = fn_call.spanify();
         }
@@ -104,13 +108,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
         Ok(match tok {
             TokenKind::ParenOpen => {
-                let expr = self.parse_expr()?.map_inner(Box::new);
-                let close = self.expect(TokenKind::ParenClose)?;
-
                 let expr = Expression::Paren {
                     open: tok_span,
-                    close,
-                    expr,
+                    expr: self.parse_expr()?.map_inner(Box::new),
+                    close: self.expect(TokenKind::ParenClose)?,
                 };
 
                 expr.spanify()
@@ -121,46 +122,13 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 // The word "expression" is used, as opposed to something more
                 // local like "factor" because it conveys intent better and an
                 // expression is valid here, it'll just be parsed by a
-                // production from above instead.
+                // production from higher in the call-stack instead.
                 return Err(Self::create_expected_err(
                     "expression",
                     Token::new(tok, tok_span),
                 ));
             }
         })
-    }
-
-    /// Parses a function call's arguments (excluding parentheses).
-    ///
-    /// Corresponds to the `<fn_call_args>` non-terminal.
-    fn parse_fn_call_args(&mut self) -> Result<Vec<FnCallArg>, DErr> {
-        let mut args = Vec::new();
-
-        // We must immediately short-circuit if we see a closing parenthesis;
-        // the loop below only ends based on commas. Note how we don't eat the
-        // closing parenthesis, the calling function does, so that it gets the
-        // span easily.
-        if self.is(TokenKind::ParenClose) {
-            return Ok(args);
-        }
-
-        loop {
-            let arg = self.parse_expr()?;
-
-            // If we see a comma then (according to the grammar), more
-            // arguments must exist. If not, then no more arguments can exist,
-            // and we exit (allowing the caller to eat the closing
-            // parenthesis). Note that this is different to many languages,
-            // which allow a trailing comma.
-            if let Some(comma) = self.eat(TokenKind::Comma) {
-                args.push((arg, Some(comma)));
-            } else {
-                args.push((arg, None));
-                break;
-            }
-        }
-
-        Ok(args)
     }
 }
 

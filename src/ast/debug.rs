@@ -2,7 +2,7 @@ use std::{fmt::Display, io};
 
 use crate::Sp;
 
-use super::{Ast, Expression, Statement, VarDef};
+use super::{Ast, Expression, FnDef, Statement, VarDef};
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
@@ -63,6 +63,12 @@ fn dbg_stmt(stmt: &Sp<Statement>, w: &mut impl io::Write, indent: AstIndent) -> 
             write!(w, "{indent}")?;
             dbg_var_def(var_def, w, indent.mv())
         }
+        Statement::FnDef(fn_def) => {
+            writeln!(w, "Statement(FnDef)@{:?}", stmt.span())?;
+
+            write!(w, "{indent}")?;
+            dbg_fn_def(fn_def, w, indent.mv())
+        }
     }
 }
 
@@ -80,6 +86,24 @@ pub fn dbg_var_def(
 
     write!(w, "{indent}expr: ")?;
     dbg_expr(var_def.expr.as_ref(), w, indent.mv())
+}
+
+pub fn dbg_fn_def(fn_def: &Sp<FnDef>, w: &mut impl io::Write, indent: AstIndent) -> io::Result<()> {
+    let (fn_def, span) = fn_def.as_parts();
+    writeln!(w, "VarDef@{span:?}")?;
+
+    writeln!(w, "{indent}fn_kw: {:?}", fn_def.fn_kw)?;
+    writeln!(w, "{indent}name: {:?}", fn_def.name)?;
+    writeln!(w, "{indent}args_open: {:?}", fn_def.args_open)?;
+    for (idx, (arg, comma)) in fn_def.args.iter().enumerate() {
+        writeln!(w, "{indent}arg #{idx} (comma): {comma:?}")?;
+        writeln!(w, "{indent}arg #{idx}: {arg}")?;
+    }
+    writeln!(w, "{indent}args_close: {:?}", fn_def.args_close)?;
+    writeln!(w, "{indent}equals: {:?}", fn_def.equals)?;
+
+    write!(w, "{indent}expr: ")?;
+    dbg_expr(fn_def.expr.as_ref(), w, indent.mv())
 }
 
 pub fn dbg_expr(

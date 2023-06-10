@@ -1,8 +1,8 @@
-1!!;
-(1 + 1)!;
-1 + 1!;
-function()!;
-variable!;
+[33;3m1[0m!![90;1m;[0m
+[95m([0m[33;3m1[0m + [33;3m1[0m[95m)[0m![90;1m;[0m
+[33;3m1[0m + [33;3m1[0m![90;1m;[0m
+function[95m([0m[95m)[0m![90;1m;[0m
+variable![90;1m;[0m
 
 ---AST Statement (semi: 3..4) #0---
 Statement(Expression)@0..3

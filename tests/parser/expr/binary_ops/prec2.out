@@ -1,0 +1,15 @@
+[33;3m1[0m + [33;3m1[0m == [33;3m1[0m * [33;3m2[0m[90;1m;[0m
+
+---AST Statement (semi: 14..15) #0---
+Statement(Expression)@0..14
+| BinaryOp@0..14
+| | op: Eq@6..8
+| | lhs: BinaryOp@0..5
+| | | op: Add@2..3
+| | | lhs: Float(1.0)@0..1
+| | | rhs: Float(1.0)@4..5
+| | rhs: BinaryOp@9..14
+| | | op: Mul@11..12
+| | | lhs: Float(1.0)@9..10
+| | | rhs: Float(2.0)@13..14
+-------

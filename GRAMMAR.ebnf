@@ -2,20 +2,26 @@
 <digit>      ::= [0-9]
 <number>     ::= (<digit> | ".")+
 <letter>     ::= [a-z] | [A-Z]
-<identifier> ::= <letter> (<letter> | <digit>)*
+<identifier> ::= <letter>+
 
 <literal>    ::= <number> | "true" | "false"
 
 /* the root program node */
-<program>   ::= (<statement> ";")+
-<statement> ::= <var_def> | <expression>
+<program>          ::= (<statement> ";")+
+/* helpful REPL rule, allows semicolons to be omitted */
+<single_statement> ::= <statement> ";"?
 
+<statement> ::= <var_def> | <fn_def> | <expression>
+
+/* definitions (variable/function) */
 <var_def> ::= "let " <identifier> "=" <expression>
+<fn_def>  ::= "fn " <identifier> "(" <fn_def_arg_list> ")" "=" <expression>
 
 /* expression tree. further down = higher precedence */
-<expression>          ::= <additive_expression>
+<expression>          ::= <equality_expression>
+<equality_expression> ::= <additive_expression> ("==" <additive_expression>)*
 <additive_expression> ::= <term> (("+" | "-") <term>)*
-<term>                ::= <factor> (("*" | "/") <factor>)*
+<term>                ::= <unary_prefix> (("*" | "/") <unary_prefix>)*
 <unary_prefix>        ::= "-" <unary_prefix> | <unary_postfix>
 <unary_postfix>       ::= <fn_call> "!"*
 <fn_call>             ::= <factor> ("(" <fn_call_arg_list> ")")*
@@ -23,3 +29,4 @@
 
 /* complex grammar constructs */
 <fn_call_arg_list>    ::= (<expression> ("," <expression>)*)?
+<fn_def_arg_list>     ::= (<identifier> ("," <identifier>)*)?

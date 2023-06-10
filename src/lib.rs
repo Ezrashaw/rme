@@ -4,6 +4,7 @@
 // #![allow(clippy::must_use_candidate)]
 // #![allow(clippy::missing_panics_doc)]
 
+mod ansi;
 pub mod ast;
 mod diag;
 mod interpret;

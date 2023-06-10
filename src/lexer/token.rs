@@ -68,10 +68,12 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
-    /// Returns a string literal which identifies this token *as it should look in a diagnostic*.
+    /// Returns a string literal which identifies this token *as it should look
+    /// in a diagnostic*.
     ///
     /// The caller should wrap the returned value in backticks (`` `...` ``)
     /// before displaying in a diagnostic.
+    // FIXME: this name must be updated, we are using it in more places now
     #[must_use]
     pub const fn diag_str(&self) -> &'static str {
         match self {
@@ -139,7 +141,7 @@ pub enum Keyword {
 
     /// `fn` keyword.
     ///
-    /// Not currently in use.
+    /// Used for function definitions.
     Fn,
 }
 
