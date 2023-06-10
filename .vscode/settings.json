@@ -6,6 +6,7 @@
         "merror",
         "Paren",
         "Peekable",
+        "punct",
         "repr",
         "spanify",
         "subd",

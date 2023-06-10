@@ -13,6 +13,7 @@ pub struct Ast {
 pub enum Statement {
     Expr(Sp<Expression>),
     VarDef(Sp<VarDef>),
+    FnDef(Sp<FnDef>),
 }
 
 impl Statement {
@@ -20,6 +21,7 @@ impl Statement {
         let span = match &self {
             Statement::Expr(expr) => expr.span(),
             Statement::VarDef(var_def) => var_def.span(),
+            Statement::FnDef(fn_def) => fn_def.span(),
         };
 
         Sp::new(self, span)
@@ -41,18 +43,36 @@ impl VarDef {
     }
 }
 
+#[derive(Clone)]
+pub struct FnDef {
+    pub fn_kw: Span,
+    pub name: Sp<String>,
+    pub args_open: Span,
+    pub args: Vec<(Sp<String>, Option<Span>)>,
+    pub args_close: Span,
+    pub equals: Span,
+    pub expr: Sp<Expression>,
+}
+
+impl FnDef {
+    pub fn spanify(self) -> Sp<Self> {
+        let span = Span::merge(self.fn_kw, self.expr.span());
+        Sp::new(self, span)
+    }
+}
+
 pub type FnCallArg = (Sp<Expression>, Option<Span>);
 
 #[derive(Clone)]
 pub enum Expression {
     Paren {
         open: Span,
-        close: Span,
         expr: SpBox<Expression>,
+        close: Span,
     },
     BinaryOp {
-        op: Sp<BinOperator>,
         lhs: SpBox<Expression>,
+        op: Sp<BinOperator>,
         rhs: SpBox<Expression>,
     },
     UnaryOp {
@@ -110,16 +130,20 @@ pub enum BinOperator {
     Sub,
     Mul,
     Div,
+    Eq,
 }
 
 /// A unary operator.
 ///
-/// That is, a operator with a single operand. The operator may either be before
-/// the operand (prefix position, more common) or after the operand (postfix
-/// position, less common).
+/// That is, a operator with a single operand. The operator may either be
+/// before the operand (prefix position, more common) or after the operand
+/// (postfix position, less common).
 #[derive(Debug, Clone, Copy)]
 pub enum UnOperator {
     /// Arithmetic negation.
+    ///
+    /// Note that negative literals are encoded with this; you may only ever
+    /// have a positive float literal.
     ///
     /// e.g. `-1`
     Negation,

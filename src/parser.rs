@@ -1,14 +1,13 @@
 use std::iter::Peekable;
 
 use crate::{
-    ast::{Ast, Statement, VarDef},
+    ast::{Ast, FnDef, Statement, VarDef},
     DErr, Keyword, Lexer, Sp, Span, Token, TokenKind,
 };
 
 mod expr;
 
 pub fn parse(input: &str, span_offset: usize) -> Result<Ast, DErr> {
-    // FIXME: there is a panic here with using collect.
     let tokens = Lexer::new(input, span_offset).collect::<Result<Vec<Token>, DErr>>()?;
 
     let parser = Parser::new(tokens.into_iter());
@@ -29,6 +28,12 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     fn next(&mut self) -> Result<Token, DErr> {
         self.input
             .next()
+            .ok_or_else(|| DErr::new_err("unexpected end of input", Span::EOF))
+    }
+
+    fn peek(&mut self) -> Result<&Token, DErr> {
+        self.input
+            .peek()
             .ok_or_else(|| DErr::new_err("unexpected end of input", Span::EOF))
     }
 
@@ -80,6 +85,39 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             false
         }
     }
+
+    fn parse_comma_delimited<T>(
+        &mut self,
+        f: fn(&mut Self) -> Result<T, DErr>,
+    ) -> Result<Vec<(T, Option<Span>)>, DErr> {
+        let mut values = Vec::new();
+
+        // We must immediately short-circuit if we see a closing parenthesis;
+        // the loop below only ends based on commas. Note how we don't eat the
+        // closing parenthesis, the calling function does, so that it gets the
+        // span easily.
+        if self.is(TokenKind::ParenClose) {
+            return Ok(values);
+        }
+
+        loop {
+            let val = f(self)?;
+
+            // If we see a comma then (according to the grammar), more
+            // arguments must exist. If not, then no more arguments can exist,
+            // and we exit (allowing the caller to eat the closing
+            // parenthesis). Note that this is different to many languages,
+            // which allow a trailing comma.
+            if let Some(comma) = self.eat(TokenKind::Comma) {
+                values.push((val, Some(comma)));
+            } else {
+                values.push((val, None));
+                break;
+            }
+        }
+
+        Ok(values)
+    }
 }
 
 impl<I: Iterator<Item = Token>> Parser<I> {
@@ -105,9 +143,16 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     ///
     /// Parses the `<statement>` non-terminal, however also ensures that no
     /// input is left over (not per the grammar).
+    // FIXME: this function needs to be tested, our current infrastructure
+    //        can't handle this as it doesn't descend from `Parser::parse`
     pub fn parse_single_stmt(mut self) -> Result<Sp<Statement>, DErr> {
         let stmt = self.parse_stmt()?;
 
+        // as part of the grammar (and user-friendliness), we allow a trailing
+        // semicolon (ignoring it if does exist) for convenience purposes
+        self.eat(TokenKind::Semi);
+
+        // this is different from 
         if let Some(tok) = self.input.next() {
             return Err(DErr::new_err(
                 "input left over",
@@ -122,12 +167,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     ///
     /// Corresponds to the `<statement>` non-terminal.
     fn parse_stmt(&mut self) -> Result<Sp<Statement>, DErr> {
-        let stmt = if self.is(TokenKind::Keyword(Keyword::Let)) {
-            let var_def = self.parse_var_def()?;
-            Statement::VarDef(var_def)
-        } else {
-            let expr = self.parse_expr()?;
-            Statement::Expr(expr)
+        let stmt = match self.peek()?.as_parts().0 {
+            TokenKind::Keyword(Keyword::Let) => Statement::VarDef(self.parse_var_def()?),
+            TokenKind::Keyword(Keyword::Fn) => Statement::FnDef(self.parse_fn_def()?),
+            _ => Statement::Expr(self.parse_expr()?),
         };
 
         Ok(stmt.spanify())
@@ -137,18 +180,30 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     ///
     /// Corresponds to the `<var_def>` non-terminal.
     fn parse_var_def(&mut self) -> Result<Sp<VarDef>, DErr> {
-        let let_kw = self.expect(TokenKind::Keyword(Keyword::Let))?;
-        let name = self.expect_id()?;
-        let equals = self.expect(TokenKind::Equals)?;
-        let expr = self.parse_expr()?;
-
         let var_def = VarDef {
-            let_kw,
-            name,
-            equals,
-            expr,
+            let_kw: self.expect(TokenKind::Keyword(Keyword::Let))?,
+            name: self.expect_id()?,
+            equals: self.expect(TokenKind::Equals)?,
+            expr: self.parse_expr()?,
         };
 
         Ok(var_def.spanify())
+    }
+
+    /// Parses a function definition.
+    /// 
+    /// Corresponds to the `<fn_def>` non-terminal.
+    fn parse_fn_def(&mut self) -> Result<Sp<FnDef>, DErr> {
+        let fn_def = FnDef {
+            fn_kw: self.expect(TokenKind::Keyword(Keyword::Fn))?,
+            name: self.expect_id()?,
+            args_open: self.expect(TokenKind::ParenOpen)?,
+            args: self.parse_comma_delimited(Self::expect_id)?,
+            args_close: self.expect(TokenKind::ParenClose)?,
+            equals: self.expect(TokenKind::Equals)?,
+            expr: self.parse_expr()?,
+        };
+
+        Ok(fn_def.spanify())
     }
 }

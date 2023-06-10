@@ -1,6 +1,4 @@
-use rme::{
-    ast::Statement, DErr, Interpreter, Lexer, Parser, SourceMap, Sp, SubDiag, SubDiagLevel, Token,
-};
+use rme::{ast::Statement, DErr, Interpreter, Lexer, Parser, SourceMap, Sp, Token};
 use std::io::{stdin, stdout, Write};
 
 fn main() {
@@ -29,27 +27,12 @@ fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result
     source_map.push_line(&input);
 
     let ast = parse_stmt(&input, offset)?;
-    let ast_span = ast.span();
 
+    print!("\x1B[1A\x1B[K");
     let formatted = ast.to_string();
-    if formatted != input.trim_end() {
-        println!("formatted: `{formatted}`");
-    }
+    println!("$ {formatted}");
 
-    let val = interpreter.interpret_stmt(ast)?;
-
-    let mut info_diag = SubDiag::new(
-        SubDiagLevel::Info,
-        format!("evaluated standalone expression to be `{val}`"),
-        ast_span,
-    );
-
-    info_diag.add_subdiag(SubDiag::without_span(
-        SubDiagLevel::Help,
-        "consider using the `print` function",
-    ));
-
-    info_diag.emit(source_map);
+    interpreter.interpret_stmt(ast)?;
 
     Ok(())
 }

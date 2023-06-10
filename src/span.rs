@@ -1,5 +1,7 @@
 use std::{cmp, fmt};
 
+// FIXME: this should be shrunk to two 32-bit integers (we get register opt
+//        then)
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {
     start: usize,
@@ -45,11 +47,11 @@ impl Span {
         Self::new(start, end)
     }
 
-    pub fn until(self, other: Self) -> Self {
+    pub const fn until(self, other: Self) -> Self {
         Self::new(self.start, other.end)
     }
 
-    pub fn offset(self, distance: isize) -> Self {
+    pub const fn offset(self, distance: isize) -> Self {
         let start = self.start.saturating_add_signed(distance);
         let end = self.end.saturating_add_signed(distance);
 
@@ -69,11 +71,11 @@ pub struct SourceMap {
 }
 
 impl SourceMap {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self::from_input(String::new())
     }
 
-    pub fn from_input(input: String) -> Self {
+    pub const fn from_input(input: String) -> Self {
         Self { input }
     }
 
@@ -111,7 +113,7 @@ impl SourceMap {
 pub struct Sp<T>(T, Span);
 
 impl<T> Sp<T> {
-    pub fn new(val: T, span: Span) -> Self {
+    pub const fn new(val: T, span: Span) -> Self {
         Self(val, span)
     }
 
@@ -119,7 +121,7 @@ impl<T> Sp<T> {
         Sp(Box::new(val), span)
     }
 
-    pub fn as_ref(&self) -> Sp<&T> {
+    pub const fn as_ref(&self) -> Sp<&T> {
         Sp::new(self.inner(), self.span())
     }
 
@@ -127,11 +129,11 @@ impl<T> Sp<T> {
         Sp::new(map(self.0), self.1)
     }
 
-    pub fn inner(&self) -> &T {
+    pub const fn inner(&self) -> &T {
         &self.0
     }
 
-    pub fn span(&self) -> Span {
+    pub const fn span(&self) -> Span {
         self.1
     }
 
@@ -139,7 +141,7 @@ impl<T> Sp<T> {
         (self.0, self.1)
     }
 
-    pub fn as_parts(&self) -> (&T, Span) {
+    pub const fn as_parts(&self) -> (&T, Span) {
         (&self.0, self.1)
     }
 }
@@ -159,7 +161,7 @@ impl<T: fmt::Debug> fmt::Debug for Sp<T> {
 pub type SpBox<T> = Sp<Box<T>>;
 
 impl<T> SpBox<T> {
-    pub fn unbox(&self) -> Sp<&T> {
+    pub const fn unbox(&self) -> Sp<&T> {
         Sp::new(self.inner(), self.span())
     }
 }
