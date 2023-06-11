@@ -1,3 +1,5 @@
+// FIXME: bring this over to the new ansi infrastructure
+
 use std::{
     fmt::{Debug, Display},
     io::{self, stdout, Write},

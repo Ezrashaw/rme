@@ -12,6 +12,7 @@
         "subd",
         "subdiag",
         "trunc",
+        "typeck",
         "unop"
     ]
 }

@@ -1,4 +1,4 @@
-use rme::{ast::Statement, DErr, Interpreter, Lexer, Parser, SourceMap, Sp, Token};
+use rme::{ast::Statement, lexer::Lexer, token::Token, DErr, Interpreter, Parser, SourceMap, Sp};
 use std::io::{stdin, stdout, Write};
 
 fn main() {

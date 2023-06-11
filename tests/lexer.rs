@@ -1,5 +1,5 @@
 use crate::RegressionTests;
-use rme::{lex, SourceMap};
+use rme::{lexer::lex, SourceMap};
 use std::io;
 
 /// Regression tests for the lexer ([`rme::Lexer`]).
