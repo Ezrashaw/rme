@@ -132,7 +132,7 @@ impl fmt::Display for Literal {
 /// 1-byte enum.
 ///
 /// Used as part of [`TokenKind`].
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Keyword {
     /// `let` keyword.
     ///

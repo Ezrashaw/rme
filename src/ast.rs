@@ -1,4 +1,4 @@
-use crate::{lexer, Sp, SpBox, Span};
+use crate::{token, Sp, SpBox, Span};
 
 #[cfg(feature = "ast-debug")]
 pub mod debug;
@@ -79,7 +79,7 @@ pub enum Expression {
         op: Sp<UnOperator>,
         expr: SpBox<Expression>,
     },
-    Literal(lexer::Literal),
+    Literal(token::Literal),
     Variable(String),
     FunctionCall {
         expr: SpBox<Expression>,

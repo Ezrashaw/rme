@@ -1,9 +1,23 @@
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+#![deny(clippy::nursery)]
+#![deny(missing_docs)]
+
+//! Utilities for lexing RME code.
+//!
+//! The public members of this module are the [`lex`] function and the
+//! [`Lexer`] structure. In general, the [`lex`] function should be used for
+//! the general case, whereas the [`Lexer`] structure should be used where
+//! precise control is needed. See the documentation on both members for more
+//! information.
+
+use crate::{
+    token::{Keyword, Literal, Token, TokenKind},
+    DErr, Diag, Span, SubDiag, SubDiagLevel,
+};
 use std::str::FromStr;
 
-use crate::{DErr, Diag, Span, SubDiag, SubDiagLevel};
-
-mod token;
-pub use token::*;
+pub(crate) mod token;
 
 /// Fully lexes the provided input (with a span offset), using the [`Lexer`]
 /// structure.
@@ -78,8 +92,6 @@ pub struct Lexer<'inp> {
 
 impl<'inp> Lexer<'inp> {
     /// Creates a new [`Lexer`] from the given input.
-    ///
-    /// Note that the input **must be ASCII**.
     ///
     /// `span_offset` can be used to ensure correct (unique) [`Span`]s, even
     /// when previously lexed (by a different instance) input exists.
@@ -212,7 +224,7 @@ impl<'inp> Lexer<'inp> {
             // return an error if the character doesn't match the start of any
             // tokens
             ch => {
-                // 
+                //
                 return Some(Err(DErr::new_err(
                     format!("invalid start of token `{}`", ch as char),
                     self.new_span(span_start),

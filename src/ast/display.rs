@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{
     ansi::{Colour, Style, WriteStyle},
-    Keyword, Literal,
+    token::{Keyword, Literal},
 };
 
 use super::{Ast, BinOperator, Expression, FnDef, Statement, UnOperator, VarDef};

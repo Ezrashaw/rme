@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::fmt;
 
 pub struct Style;
@@ -121,6 +123,7 @@ pub enum Colour {
     Yellow,
     BrightBlack,
     BrightMagenta,
+    BrightCyan,
 }
 
 impl Colour {
@@ -131,6 +134,7 @@ impl Colour {
             Colour::Cyan => 36,
             Colour::BrightBlack => 90,
             Colour::BrightMagenta => 95,
+            Colour::BrightCyan => 96,
         }
     }
 

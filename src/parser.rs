@@ -2,7 +2,9 @@ use std::iter::Peekable;
 
 use crate::{
     ast::{Ast, FnDef, Statement, VarDef},
-    DErr, Keyword, Lexer, Sp, Span, Token, TokenKind,
+    lexer::Lexer,
+    token::{Keyword, Token, TokenKind},
+    DErr, Sp, Span,
 };
 
 mod expr;
@@ -93,7 +95,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         let mut values = Vec::new();
 
         // We must immediately short-circuit if we see a closing parenthesis;
-        // the loop below only ends based on commas. Note how we don't eat the
+        // the loop below only breaks on commas. Notice how we don't eat the
         // closing parenthesis, the calling function does, so that it gets the
         // span easily.
         if self.is(TokenKind::ParenClose) {
@@ -152,10 +154,11 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         // semicolon (ignoring it if does exist) for convenience purposes
         self.eat(TokenKind::Semi);
 
-        // this is different from 
+        // this is different from `Parser::parse` which eagerly parses while
+        // there are tokens remaining
         if let Some(tok) = self.input.next() {
             return Err(DErr::new_err(
-                "input left over",
+                "extraneous input",
                 Span::merge(tok.span(), Span::EOF),
             ));
         }
@@ -191,7 +194,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     }
 
     /// Parses a function definition.
-    /// 
+    ///
     /// Corresponds to the `<fn_def>` non-terminal.
     fn parse_fn_def(&mut self) -> Result<Sp<FnDef>, DErr> {
         let fn_def = FnDef {

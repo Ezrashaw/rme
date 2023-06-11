@@ -2,7 +2,8 @@ use std::fmt::Display;
 
 use crate::{
     ast::{BinOperator, Expression, UnOperator},
-    DErr, Diag, Literal, Sp, SubDiag, SubDiagLevel,
+    token::Literal,
+    DErr, Diag, Sp, SubDiag, SubDiagLevel,
 };
 
 #[derive(Debug, Clone)]

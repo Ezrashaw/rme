@@ -1,9 +1,11 @@
 use crate::{
     ast::{BinOperator, Expression, UnOperator},
     parser::Parser,
-    DErr, Sp, Token, TokenKind,
+    token::{Token, TokenKind},
+    DErr, Sp,
 };
 
+//
 type ExprRes = Result<Sp<Expression>, DErr>;
 
 impl<I: Iterator<Item = Token>> Parser<I> {
