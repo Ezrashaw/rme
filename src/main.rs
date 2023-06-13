@@ -1,4 +1,11 @@
-use rme::{ast::Statement, lexer::Lexer, token::Token, DErr, Interpreter, Parser, SourceMap, Sp};
+use rme::{
+    ast::Statement,
+    lexer::Lexer,
+    token::Token,
+    ty::{PrimType, Type},
+    typeck::{self, PolyType},
+    DErr, Interpreter, Parser, SourceMap, Sp,
+};
 use std::io::{stdin, stdout, Write};
 
 fn main() {
@@ -32,7 +39,19 @@ fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result
     let formatted = ast.to_string();
     println!("$ {formatted}");
 
-    interpreter.interpret_stmt(ast)?;
+    let ty = typeck::infer_stmt(ast.inner());
+    println!("{ty:?}");
+
+    let poly = PolyType::new(
+        vec![0, 1],
+        rme::ty::Type::Function(
+            vec![PrimType::Bool.into()],
+            Box::new(PrimType::Float.into()),
+        ),
+    );
+    println!("{poly}");
+
+    // interpreter.interpret_stmt(ast)?;
 
     Ok(())
 }

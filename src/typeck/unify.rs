@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::ty::TypeVar;
+
 use super::ty::Type;
 
 pub fn unify(subst: &mut Subst, t1: Type, t2: Type) -> Result<(), UnifyError> {
@@ -33,7 +35,7 @@ pub fn unify(subst: &mut Subst, t1: Type, t2: Type) -> Result<(), UnifyError> {
     }
 }
 
-fn occurs_check(var: u32, ty: &Type) -> bool {
+fn occurs_check(var: TypeVar, ty: &Type) -> bool {
     match ty {
         Type::Primitive(_) => false,
         Type::Function(args, ret) => {
@@ -49,14 +51,15 @@ pub enum UnifyError {
     TypeError,
 }
 
-pub struct Subst(HashMap<u32, Type>);
+#[derive(Debug)]
+pub struct Subst(HashMap<TypeVar, Type>);
 
 impl Subst {
-    fn empty() -> Self {
+    pub(crate) fn empty() -> Self {
         Self(HashMap::new())
     }
 
-    fn push(&mut self, from: u32, mut to: Type) {
+    fn push(&mut self, from: TypeVar, mut to: Type) {
         self.subst(&mut to);
         let res = self.0.insert(from, to);
 
@@ -64,28 +67,15 @@ impl Subst {
     }
 
     pub fn subst(&self, ty: &mut Type) -> bool {
-        match ty {
-            Type::Primitive(_) => false,
-            Type::Function(args, ret) => {
-                let mut changed = self.subst(ret);
-
-                for arg in args {
-                    if self.subst(arg) {
-                        changed = true;
-                    }
-                }
-
-                changed
+        let mut changed = false;
+        ty.walk_mut(|ty| {
+            if let Type::Var(var) = ty && let Some(replaced) = self.0.get(var).cloned() {
+                *ty = replaced;
+                changed = true;
             }
-            Type::Var(var) => {
-                if let Some(replaced) = self.0.get(var).cloned() {
-                    *ty = replaced;
-                    true
-                } else {
-                    false
-                }
-            }
-        }
+        });
+
+        changed
     }
 
     pub fn subst_shallow(&self, ty: Type) -> Type {
@@ -99,13 +89,20 @@ impl Subst {
 
 #[cfg(test)]
 mod tests {
-    use crate::typeck::{
-        ty::{PrimType, Type},
-        unify::UnifyError,
+    use crate::{
+        ty::TypeVar,
+        typeck::{
+            ty::{PrimType, Type},
+            unify::UnifyError,
+        },
     };
 
     const BOOL: Type = Type::Primitive(PrimType::Bool);
     const FLOAT: Type = Type::Primitive(PrimType::Float);
+
+    fn ty_var(val: u32) -> Type {
+        Type::Var(TypeVar::new(val))
+    }
 
     fn unify(t1: Type, t2: Type) -> Result<Vec<(u32, Type)>, UnifyError> {
         let mut subst = super::Subst::empty();
@@ -114,9 +111,9 @@ mod tests {
         let mut subst = subst
             .0
             .into_iter()
-            .map(|(k, v)| (k, v.clone()))
+            .map(|(k, v)| (k.value(), v.clone()))
             .collect::<Vec<_>>();
-        subst.sort_by_key(|(k, _)| *k);
+        subst.sort_by_key(|(k, _)| k);
 
         Ok(subst)
     }
@@ -141,31 +138,28 @@ mod tests {
 
     #[test]
     fn unify_same_var() {
-        let subst = unify(Type::Var(1), Type::Var(1)).unwrap();
+        let subst = unify(ty_var(1), ty_var(1)).unwrap();
         assert!(subst.is_empty());
 
-        let subst = unify(Type::Var(42), Type::Var(42)).unwrap();
+        let subst = unify(ty_var(42), ty_var(42)).unwrap();
         assert!(subst.is_empty());
     }
 
     #[test]
     fn unify_ty_var() {
-        let subst = unify(Type::Var(0), BOOL).unwrap();
+        let subst = unify(ty_var(0), BOOL).unwrap();
         assert_eq!(subst, [(0, BOOL)]);
 
-        let subst = unify(FLOAT, Type::Var(1)).unwrap();
+        let subst = unify(FLOAT, ty_var(1)).unwrap();
         assert_eq!(subst, [(1, FLOAT)]);
 
-        let subst = unify(Type::Function(Vec::new(), Box::new(FLOAT)), Type::Var(1)).unwrap();
+        let subst = unify(Type::Function(Vec::new(), Box::new(FLOAT)), ty_var(1)).unwrap();
         assert_eq!(subst, [(1, Type::Function(Vec::new(), Box::new(FLOAT)))]);
     }
 
     #[test]
     fn unify_failing_occurs() {
-        let res = unify(
-            Type::Var(0),
-            Type::Function(Vec::new(), Box::new(Type::Var(0))),
-        );
+        let res = unify(ty_var(0), Type::Function(Vec::new(), Box::new(ty_var(0))));
 
         assert_eq!(res, Err(UnifyError::InfiniteType));
     }
@@ -187,7 +181,7 @@ mod tests {
             FLOAT,
             BOOL,
             Type::Function(Vec::new(), Box::new(FLOAT)),
-            Type::Var(0),
+            ty_var(0),
         ];
         let subst = unify(
             Type::Function(args.clone(), Box::new(FLOAT)),
@@ -201,7 +195,7 @@ mod tests {
     #[test]
     fn unify_function_with_variables() {
         let args1 = vec![BOOL];
-        let args2 = vec![Type::Var(0)];
+        let args2 = vec![ty_var(0)];
         let subst = unify(
             Type::Function(args1, Box::new(FLOAT)),
             Type::Function(args2, Box::new(FLOAT)),
@@ -213,8 +207,8 @@ mod tests {
 
     #[test]
     fn unify_function_with_ctx() {
-        let args1 = vec![Type::Var(0), Type::Var(1)];
-        let args2 = vec![FLOAT, Type::Var(0)];
+        let args1 = vec![ty_var(0), ty_var(1)];
+        let args2 = vec![FLOAT, ty_var(0)];
         let subst = unify(
             Type::Function(args1, Box::new(BOOL)),
             Type::Function(args2, Box::new(BOOL)),
@@ -226,8 +220,8 @@ mod tests {
 
     #[test]
     fn unify_composing_subst() {
-        let args1 = vec![Type::Var(0), Type::Var(1)];
-        let arg2 = Type::Function(Vec::new(), Box::new(Type::Var(0)));
+        let args1 = vec![ty_var(0), ty_var(1)];
+        let arg2 = Type::Function(Vec::new(), Box::new(ty_var(0)));
         let args2 = vec![FLOAT, arg2];
         let subst = unify(
             Type::Function(args1, Box::new(BOOL)),
