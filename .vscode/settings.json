@@ -6,6 +6,7 @@
         "merror",
         "Paren",
         "Peekable",
+        "polytype",
         "punct",
         "repr",
         "spanify",
