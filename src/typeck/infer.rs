@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use crate::{
     ast::{Expression, FnDef, Statement},
@@ -7,32 +7,54 @@ use crate::{
     Sp,
 };
 
-use super::{polytype::PolyType, unify::Subst, utils::TypeVarGen};
+use super::{
+    polytype::PolyType,
+    unify::{unify, Subst},
+    utils::TypeVarGen,
+};
 
-pub fn infer_stmt(stmt: &Statement) -> (Type, Subst) {
+pub fn infer(env: &mut TypeEnv, vg: &mut TypeVarGen, stmt: &Statement) -> Type {
+    let mut subst = Subst::empty();
+
+    infer_stmt(env, vg, &mut subst, stmt)
+}
+
+fn infer_stmt(env: &mut TypeEnv, vg: &mut TypeVarGen, subst: &mut Subst, stmt: &Statement) -> Type {
     match stmt {
-        Statement::Expr(expr) => {
-            infer_expr(&mut TypeVarGen::new(), &mut TypeEnv::empty(), expr.inner())
-        }
+        Statement::Expr(expr) => infer_expr(env, vg, subst, expr.inner()),
         Statement::VarDef(_) => todo!(),
-        Statement::FnDef(_) => todo!(),
+        Statement::FnDef(fn_def) => infer_fn_def(env, vg, subst, fn_def.inner()),
     }
 }
 
-fn infer_expr(vg: &mut TypeVarGen, env: &mut TypeEnv, expr: &Expression) -> (Type, Subst) {
+fn infer_expr(
+    env: &mut TypeEnv,
+    vg: &mut TypeVarGen,
+    subst: &mut Subst,
+    expr: &Expression,
+) -> Type {
     let x = match expr {
-        Expression::Literal(lit) => (PrimType::from_lit(*lit).into(), Subst::empty()),
-        Expression::Variable(var) => (
-            env.lookup(var).expect("unknown variable").instantiate(vg),
-            Subst::empty(),
-        ),
-        // Expression::FunctionCall {
-        //     expr,
-        //     args,
-        //     open,
-        //     close,
-        // } => todo!(),
-        // Expression::Paren { expr, .. } => infer_expr(vg, env, expr.inner()),
+        Expression::Literal(lit) => PrimType::from_lit(*lit).into(),
+        Expression::Paren { expr, .. } => infer_expr(env, vg, subst, expr.inner()),
+        Expression::Variable(var) => env.lookup(var).expect("unknown variable").instantiate(vg),
+        Expression::FunctionCall { expr, args, .. } => {
+            let fn_type = infer_expr(env, vg, subst, expr.inner());
+            let arg_tys = args
+                .into_iter()
+                .map(|arg| infer_expr(env, vg, subst, arg.0.inner()))
+                .collect::<Vec<_>>();
+
+            let mut ret_type = vg.next_ty();
+            unify(
+                subst,
+                fn_type,
+                Type::Function(arg_tys, Box::new(ret_type.clone())),
+            );
+
+            subst.subst_shallow(&mut ret_type);
+
+            ret_type
+        }
         // Expression::BinaryOp { lhs, op, rhs } => todo!(),
         // Expression::UnaryOp { op, expr } => todo!(),
         _ => todo!(),
@@ -41,36 +63,41 @@ fn infer_expr(vg: &mut TypeVarGen, env: &mut TypeEnv, expr: &Expression) -> (Typ
     x
 }
 
-fn infer_fn_def(vg: &mut TypeVarGen, env: &mut TypeEnv, fn_def: &FnDef) -> (Type, Subst) {
-    let args = fn_def.args.iter().map(|a| a.0.inner()).collect::<Vec<_>>();
+fn infer_fn_def(env: &mut TypeEnv, vg: &mut TypeVarGen, subst: &mut Subst, fn_def: &FnDef) -> Type {
+    let args = fn_def
+        .args
+        .iter()
+        .map(|(a, _)| a.inner())
+        .collect::<Vec<_>>();
 
-    let mut arg_tys = args.iter().map(|_| vg.next_ty()).collect::<Vec<_>>();
-
-    // add types to env
-
-    let (ret_ty, subst) = infer_expr(vg, env, fn_def.expr.inner());
+    let (ret_ty, mut arg_tys) = env.with_fresh_vars(vg, subst, &args, |env, vg, subst| {
+        infer_expr(env, vg, subst, fn_def.expr.inner())
+    });
 
     for arg_ty in &mut arg_tys {
         subst.subst_shallow(arg_ty);
     }
 
-    let fn_ty = Type::Function(arg_tys, Box::new(ret_ty));
-    (fn_ty, subst)
+    let fn_type = Type::Function(arg_tys, Box::new(ret_ty));
+    // FIXME: this is basically a specialized `let` definition, not a
+    //        anonymous function abstraction expression.
+    env.push(fn_def.name.inner().to_string(), &fn_type);
+
+    fn_type
 }
 
-struct TypeEnv<'a> {
-    variables: HashMap<&'a str, PolyType>,
+pub struct TypeEnv {
+    variables: HashMap<String, PolyType>,
 }
 
-impl<'a> TypeEnv<'a> {
-    fn empty() -> Self {
+impl TypeEnv {
+    pub fn empty() -> Self {
         Self {
             variables: HashMap::new(),
         }
     }
 
-    pub fn generalize_ty(mut self, ty: Type) -> PolyType {
-        // FIXME: this should be inherent on `Type` and should be more efficient
+    pub(super) fn generalize_ty(&self, ty: Type) -> PolyType {
         // when writing comments: note that there are likely to be less
         // variables in the type than the environment, so this goes first
         let mut vars_in_ty = Vec::new();
@@ -82,10 +109,12 @@ impl<'a> TypeEnv<'a> {
             }
         });
 
-        // FIXME: this is sloooow
-        // FIXME: put hashsets everywhere
-        // FIXME: I suppose we could skip this if `ty` is a monotype (`vars_in_ty` is empty)
+        // FIXME: this is sloooow; put hashsets everywhere
         for (_, var) in self.variables.iter() {
+            if vars_in_ty.is_empty() {
+                break;
+            }
+            
             var.ty().walk(|ty| {
                 if let Type::Var(var) = ty && let Some(idx) = vars_in_ty.iter().position(|v| v == var) {
                     // FIXME: when not debugging, this can be swap_remove
@@ -97,33 +126,49 @@ impl<'a> TypeEnv<'a> {
         PolyType::new(vars_in_ty, ty)
     }
 
+    fn push(&mut self, name: String, ty: &Type) {
+        let ty = self.generalize_ty(ty.clone());
+        self.variables.insert(name, ty);
+    }
+
     fn lookup(&self, var: &str) -> Option<&PolyType> {
         self.variables.get(var)
     }
 
-    fn with_fresh_vars<T: AsRef<str>>(
+    // FIXME: refactor this into a generic "extend env" fn
+    pub fn with_fresh_vars<T>(
         &mut self,
         vg: &mut TypeVarGen,
-        var_names: &[T],
-        mut f: impl FnOnce(&mut Self),
-    ) -> Vec<Type> {
-        let mut shadowed_vars = Vec::with_capacity(var_names.len());
+        subst: &mut Subst,
+        var_names: &[&String],
+        mut f: impl FnOnce(&mut Self, &mut TypeVarGen, &mut Subst) -> T,
+    ) -> (T, Vec<Type>) {
+        let mut shadowed_vars = HashMap::<&String, PolyType>::with_capacity(var_names.len());
 
         self.variables.reserve(var_names.len());
         for var in var_names {
-            let shadowed = self.variables.insert(var.as_ref(), PolyType::fresh_var(vg));
+            let shadowed = self
+                .variables
+                .insert(var.to_string(), PolyType::fresh_var(vg));
 
             if let Some(shadowed_ty) = shadowed {
-                shadowed_vars.push((var.as_ref(), shadowed_ty));
+                shadowed_vars.insert(var, shadowed_ty);
             }
         }
 
-        f(self);
+        let t = f(self, vg, subst);
 
-        for var in vars {
-            let var = var.as_ref();
-            self.variables.remove(var.as_ref());
+        let mut types = Vec::new();
+        for var in var_names {
+            let ty = self.variables.remove(*var).unwrap();
+            types.push(ty.into_inner().1);
+
+            if let Some(shadowed) = shadowed_vars.remove(var) {
+                self.variables.insert(var.to_string(), shadowed);
+            }
         }
+
+        (t, types)
     }
 }
 
@@ -156,7 +201,7 @@ mod tests {
     fn test_generalization2() {
         // FIXME: create a `TypeEnv::new` fn
         let env = TypeEnv {
-            variables: HashMap::from([("", PolyType::new(vec![], VAR_TY))]),
+            variables: HashMap::from([("".to_owned(), PolyType::new(vec![], VAR_TY))]),
         };
 
         generalize(env, VAR_TY, &[]);
@@ -165,7 +210,7 @@ mod tests {
     #[test]
     fn test_generalization3() {
         let env = TypeEnv {
-            variables: HashMap::from([("", PolyType::new(vec![], VAR_TY))]),
+            variables: HashMap::from([("".to_owned(), PolyType::new(vec![], VAR_TY))]),
         };
 
         let ty_var2 = TypeVar::from_u32(1);

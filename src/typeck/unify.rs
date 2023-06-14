@@ -46,7 +46,7 @@ pub enum UnifyError {
 pub struct Subst(HashMap<TypeVar, Type>);
 
 impl Subst {
-    pub(crate) fn empty() -> Self {
+    pub fn empty() -> Self {
         Self(HashMap::new())
     }
 
@@ -214,5 +214,18 @@ mod tests {
             subst,
             [(0, FLOAT), (1, Type::Function(vec![], Box::new(FLOAT)))]
         );
+    }
+
+    #[test]
+    fn unify_id_applied_id() {
+        let id_fn = Type::Function(vec![ty_var(0)], Box::new(ty_var(0)));
+        let id_fn2 = Type::Function(vec![ty_var(1)], Box::new(ty_var(1)));
+        let subst = unify(
+            Type::Function(vec![id_fn2.clone()], Box::new(id_fn2.clone())),
+            id_fn.clone(),
+        )
+        .unwrap();
+
+        assert_eq!(subst, [(0, id_fn2)]);
     }
 }

@@ -26,10 +26,14 @@ impl PolyType {
     }
 
     pub fn instantiate(&self, vg: &mut TypeVarGen) -> Type {
+        let mut ty = self.ty.clone();
+
+        if self.bound_variables.is_empty() {
+            return ty;
+        }
+
         let first_fresh_var = self.bound_variables.len();
         vg.0 += first_fresh_var as u32;
-
-        let mut ty = self.ty.clone();
 
         ty.replace_vars(|var| {
             self.bound_variables
