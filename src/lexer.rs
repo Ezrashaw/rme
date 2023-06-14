@@ -29,8 +29,8 @@ pub(crate) mod token;
 ///
 /// ## In a `for` loop:
 /// ```
-/// # use rme::{TokenKind, Span};
-/// let tokens = rme::lex("+++", 0);
+/// # use rme::{token::TokenKind, Span};
+/// let tokens = rme::lexer::lex("+++", 0);
 /// for token in tokens {
 ///     assert_eq!(token?.into_parts().0, TokenKind::Plus);
 /// }
@@ -39,8 +39,8 @@ pub(crate) mod token;
 ///
 /// ## Directly with [`Vec`]
 /// ```
-/// # use rme::{Token, Span};
-/// let mut tokens = rme::lex(";", 10);
+/// # use rme::{token::Token, Span};
+/// let mut tokens = rme::lexer::lex(";", 10);
 /// let span = tokens.pop().unwrap()?.span();
 /// assert_eq!(span, Span::new(10, 11));
 /// # Ok::<(), rme::DErr>(())
@@ -49,19 +49,19 @@ pub(crate) mod token;
 /// ## Incorrectly handling [`Diag`]s
 /// ```should_panic
 /// // we *must* handle each error, dropping isn't OK
-/// let tokens = rme::lex("~", 0);
+/// let tokens = rme::lexer::lex("~", 0);
 /// drop(tokens); // PANIC: we dropped a `Diag` without emitting it
 /// # Ok::<(), rme::DErr>(())
 /// ```
 ///
 /// ## Incorrectly handling *all* [`Diag`]s
 /// ```should_panic
-/// # use rme::{DErr, Token, SourceMap};
+/// # use rme::{DErr, token::Token, SourceMap};
 /// let input = "~~";
 ///
 /// // PANIC: collecting `Result`s like this drops any other errors, invoking
 /// //        `Diag`'s drop guard.
-/// let tokens = rme::lex(input, 0)
+/// let tokens = rme::lexer::lex(input, 0)
 ///     .into_iter()
 ///     .collect::<Result<Vec<Token>, DErr>>();
 /// match tokens {

@@ -10,19 +10,57 @@ pub enum Type {
 }
 
 impl Type {
+    pub fn any_var(&self, mut f: impl FnMut(&TypeVar) -> bool) -> bool {
+        let mut val = false;
+        // FIXME: this isn't that efficient, we should stop when we see `true`
+        self.walk_(&mut |ty| {
+            if let Type::Var(v) = ty && f(v) {
+                val = true;
+            }
+        });
+
+        val
+    }
+
+    pub fn walk(&self, mut f: impl FnMut(&Type)) {
+        self.walk_(&mut |ty| f(ty))
+    }
+
+    pub fn replace_vars(&mut self, mut f: impl FnMut(TypeVar) -> Option<Type>) {
+        self.walk_mut_(&mut |ty| {
+            if let Type::Var(v) = ty {
+                if let Some(new_ty) = f(*v) {
+                    *ty = new_ty;
+                }
+            }
+        })
+    }
+
     pub fn walk_mut(&mut self, mut f: impl FnMut(&mut Type)) {
+        self.walk_mut_(&mut f)
+    }
+
+    fn walk_(&self, f: &mut impl FnMut(&Type)) {
         f(self);
         match self {
-            Type::Primitive(_) => {}
-            Type::Var(_) => {}
+            Type::Primitive(_) | Type::Var(_) => {}
             Type::Function(args, ret) => {
-                ret.walk_mut(&mut f);
-                args.iter_mut().for_each(|ty| ty.walk_mut(&mut f));
+                ret.walk_(f);
+                args.iter().for_each(|ty| ty.walk_(f));
             }
         }
     }
 
-    pub fn walk_vars_mut(&mut self, f: impl FnMut()) {}
+    fn walk_mut_(&mut self, f: &mut impl FnMut(&mut Type)) {
+        f(self);
+        match self {
+            Type::Primitive(_) | Type::Var(_) => {}
+            Type::Function(args, ret) => {
+                ret.walk_mut_(f);
+                args.iter_mut().for_each(|ty| ty.walk_mut_(f));
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,6 +70,7 @@ pub enum PrimType {
 }
 
 #[derive(Hash, Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
 pub struct TypeVar(u32);
 
 impl TypeVar {
@@ -39,8 +78,8 @@ impl TypeVar {
         self.0
     }
 
-    pub(crate) fn new(val: u32) -> Self {
-        Self(val)
+    pub(super) const fn from_u32(value: u32) -> Self {
+        Self(value)
     }
 }
 
