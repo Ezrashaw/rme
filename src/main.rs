@@ -1,29 +1,39 @@
 use rme::{
-    ast::Statement, lexer::Lexer, token::Token, ty::PrimType, typeck, DErr, Interpreter, Parser,
-    SourceMap, Sp,
+    ast::Statement,
+    lexer::Lexer,
+    token::Token,
+    ty::TypeVar,
+    typeck::{self, Subst, TypeEnv},
+    DErr, Parser, SourceMap, Sp,
 };
 use std::io::{stdin, stdout, Write};
 
 fn main() {
     let mut source_map = SourceMap::new();
-    let mut interpreter = Interpreter::new();
-    loop {
-        let res = get_stmt(&mut source_map, &mut interpreter);
+    let mut ty_env = TypeEnv::empty();
+    let mut vg = typeck::utils::TypeVarGen::new();
 
-        if let Err(diag) = res {
-            diag.emit(&source_map);
+    loop {
+        let stmt = get_stmt(&mut source_map);
+        match stmt {
+            Ok(Some(stmt)) => {
+                let ty = typeck::infer(&mut ty_env, &mut vg, stmt.inner());
+                println!("{ty}");
+            }
+            Ok(None) => {}
+            Err(diag) => diag.emit(&source_map),
         }
     }
 }
 
-fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result<(), DErr> {
+fn get_stmt(source_map: &mut SourceMap) -> Result<Option<Sp<Statement>>, DErr> {
     print!("$ ");
     stdout().flush().unwrap();
     let mut input = String::new();
     stdin().read_line(&mut input).unwrap();
 
     if input.trim_end().is_empty() {
-        return Ok(());
+        return Ok(None);
     }
 
     let offset = source_map.len();
@@ -35,21 +45,7 @@ fn get_stmt(source_map: &mut SourceMap, interpreter: &mut Interpreter) -> Result
     let formatted = ast.to_string();
     println!("$ {formatted}");
 
-    let ty = typeck::infer_stmt(ast.inner());
-    println!("{ty:?}");
-
-    // let poly = PolyType::new(
-    //     vec![0, 1],
-    //     rme::ty::Type::Function(
-    //         vec![PrimType::Bool.into()],
-    //         Box::new(PrimType::Float.into()),
-    //     ),
-    // );
-    // println!("{poly}");
-
-    // interpreter.interpret_stmt(ast)?;
-
-    Ok(())
+    Ok(Some(ast))
 }
 
 fn parse_stmt(input: &str, span_offset: usize) -> Result<Sp<Statement>, DErr> {

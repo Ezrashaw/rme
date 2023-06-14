@@ -5,7 +5,7 @@ use crate::{
     DErr, Sp,
 };
 
-//
+// FIXME: add doc-comment here
 type ExprRes = Result<Sp<Expression>, DErr>;
 
 impl<I: Iterator<Item = Token>> Parser<I> {

@@ -4,6 +4,7 @@ mod infer;
 mod polytype;
 pub(crate) mod ty;
 mod unify;
-mod utils;
+pub mod utils;
 
-pub use infer::infer_stmt;
+pub use infer::{infer, TypeEnv};
+pub use unify::Subst;
