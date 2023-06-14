@@ -4,16 +4,17 @@ use crate::ty::TypeVar;
 
 use super::ty::Type;
 
-pub fn unify(subst: &mut Subst, t1: Type, t2: Type) -> Result<(), UnifyError> {
-    let t1 = subst.subst_shallow(t1);
-    let t2 = subst.subst_shallow(t2);
+pub fn unify(subst: &mut Subst, mut t1: Type, mut t2: Type) -> Result<(), UnifyError> {
+    subst.subst_shallow(&mut t1);
+    subst.subst_shallow(&mut t2);
+    let (t1, t2) = (t1, t2);
 
     match (t1, t2) {
         (Type::Primitive(p1), Type::Primitive(p2)) if p1 == p2 => Ok(()),
 
         (Type::Var(v1), Type::Var(v2)) if v1 == v2 => Ok(()),
         (Type::Var(var), ty) | (ty, Type::Var(var)) => {
-            if occurs_check(var, &ty) {
+            if ty.any_var(|&v| v == var) {
                 return Err(UnifyError::InfiniteType);
             }
 
@@ -32,16 +33,6 @@ pub fn unify(subst: &mut Subst, t1: Type, t2: Type) -> Result<(), UnifyError> {
         }
 
         _ => Err(UnifyError::TypeError),
-    }
-}
-
-fn occurs_check(var: TypeVar, ty: &Type) -> bool {
-    match ty {
-        Type::Primitive(_) => false,
-        Type::Function(args, ret) => {
-            occurs_check(var, ret) || args.iter().any(|ty| occurs_check(var, ty))
-        }
-        Type::Var(v) => *v == var,
     }
 }
 
@@ -66,23 +57,13 @@ impl Subst {
         assert!(res.is_none());
     }
 
-    pub fn subst(&self, ty: &mut Type) -> bool {
-        let mut changed = false;
-        ty.walk_mut(|ty| {
-            if let Type::Var(var) = ty && let Some(replaced) = self.0.get(var).cloned() {
-                *ty = replaced;
-                changed = true;
-            }
-        });
-
-        changed
+    pub fn subst(&self, ty: &mut Type) {
+        ty.replace_vars(|var| self.0.get(&var).cloned());
     }
 
-    pub fn subst_shallow(&self, ty: Type) -> Type {
-        if let Type::Var(var) = ty {
-            self.0.get(&var).cloned().unwrap_or(ty)
-        } else {
-            ty
+    pub fn subst_shallow(&self, ty: &mut Type) {
+        if let Type::Var(var) = ty && let Some(replace) = self.0.get(&var).cloned()  {
+            *ty = replace;
         }
     }
 }
@@ -101,7 +82,7 @@ mod tests {
     const FLOAT: Type = Type::Primitive(PrimType::Float);
 
     fn ty_var(val: u32) -> Type {
-        Type::Var(TypeVar::new(val))
+        Type::Var(TypeVar::from_u32(val))
     }
 
     fn unify(t1: Type, t2: Type) -> Result<Vec<(u32, Type)>, UnifyError> {
@@ -111,9 +92,9 @@ mod tests {
         let mut subst = subst
             .0
             .into_iter()
-            .map(|(k, v)| (k.value(), v.clone()))
+            .map(|(k, v)| (k.value(), v))
             .collect::<Vec<_>>();
-        subst.sort_by_key(|(k, _)| k);
+        subst.sort_by_key(|&(k, _)| k);
 
         Ok(subst)
     }
