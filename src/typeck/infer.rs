@@ -12,34 +12,28 @@ use crate::{
 
 use super::{
     polytype::PolyType,
-    unify::{unify, Subst},
+    unify::{unify, Subst, TypeError},
     utils::TypeVarGen,
 };
 
 pub fn infer<'a>(
     env: &mut TypeEnv<'a>,
-    vg: &mut TypeVarGen,
     stmts: impl Iterator<Item = &'a Statement>,
-) -> Vec<Type> {
-    let mut subst = Subst::empty();
-
+) -> Result<Vec<Type>, TypeError> {
     let mut types = Vec::new();
+
     for stmt in stmts {
-        let ty = infer_stmt(env, vg, &mut subst, stmt);
-        println!("{stmt} has type {ty}");
-        println!("{env}");
+        let ty = infer_stmt(env, stmt)?;
         types.push(ty);
     }
 
-    types
+    Ok(types)
 }
 
-fn infer_stmt<'a>(
-    env: &mut TypeEnv<'a>,
-    vg: &mut TypeVarGen,
-    subst: &mut Subst,
-    stmt: &'a Statement,
-) -> Type {
+fn infer_stmt<'a>(env: &mut TypeEnv<'a>, stmt: &'a Statement) -> Result<Type, TypeError> {
+    let mut vg = &mut TypeVarGen::new();
+    let mut subst = &mut Subst::empty();
+
     match stmt {
         Statement::Expr(expr) => infer_expr(env, vg, subst, expr.inner()),
         Statement::VarDef(_) => todo!(),
@@ -52,35 +46,34 @@ fn infer_expr(
     vg: &mut TypeVarGen,
     subst: &mut Subst,
     expr: &Expression,
-) -> Type {
-    let x = match expr {
-        Expression::Literal(lit) => PrimType::from_lit(*lit).into(),
+) -> Result<Type, TypeError> {
+    match expr {
+        Expression::Literal(lit) => Ok(PrimType::from_lit(*lit).into()),
         Expression::Paren { expr, .. } => infer_expr(env, vg, subst, expr.inner()),
-        Expression::Variable(var) => env.lookup(var).expect("unknown variable").instantiate(vg),
-        Expression::FunctionCall { expr, args, .. } => {
-            let fn_type = infer_expr(env, vg, subst, expr.inner());
+        Expression::Variable(var) => Ok(env.lookup(var).expect("unknown variable").instantiate(vg)),
+        Expression::FunctionCall { name, args, .. } => {
+            let fn_type = infer_expr(env, vg, subst, name.inner())?;
+
             let arg_tys = args
                 .iter()
                 .map(|arg| infer_expr(env, vg, subst, arg.0.inner()))
-                .collect::<Vec<_>>();
+                .collect::<Result<Vec<_>, _>>()?;
 
             let mut ret_type = vg.fresh_ty();
             unify(
                 subst,
                 fn_type,
                 Type::Function(arg_tys, Box::new(ret_type.clone())),
-            );
+            )?;
 
             subst.subst_shallow(&mut ret_type);
 
-            ret_type
+            Ok(ret_type)
         }
         // Expression::BinaryOp { lhs, op, rhs } => todo!(),
         // Expression::UnaryOp { op, expr } => todo!(),
         _ => todo!(),
-    };
-
-    x
+    }
 }
 
 fn infer_fn_def<'a>(
@@ -88,7 +81,7 @@ fn infer_fn_def<'a>(
     vg: &mut TypeVarGen,
     subst: &mut Subst,
     fn_def: &'a FnDef,
-) -> Type {
+) -> Result<Type, TypeError> {
     let args = fn_def
         .args
         .iter()
@@ -99,6 +92,8 @@ fn infer_fn_def<'a>(
         infer_expr(env, vg, subst, fn_def.expr.inner())
     });
 
+    let ret_ty = ret_ty?;
+
     for arg_ty in &mut arg_tys {
         subst.subst_shallow(arg_ty);
     }
@@ -108,7 +103,7 @@ fn infer_fn_def<'a>(
     //        anonymous function abstraction expression.
     env.push(fn_def.name.inner(), &fn_type);
 
-    fn_type
+    Ok(fn_type)
 }
 
 pub struct TypeEnv<'a> {
@@ -202,7 +197,7 @@ impl fmt::Display for TypeEnv<'_> {
             writeln!(f, "{var}: {polytype}")?;
         }
 
-        write!(f,   "----------------------");
+        write!(f, "----------------------");
 
         Ok(())
     }

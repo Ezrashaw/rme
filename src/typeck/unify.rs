@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 
-use crate::ty::TypeVar;
+use crate::{ty::TypeVar, DErr, Diag, ErrorLevel};
 
 use super::ty::Type;
 
-pub fn unify(subst: &mut Subst, mut t1: Type, mut t2: Type) -> Result<(), UnifyError> {
-    println!("{t1} and {t2}");
+pub fn unify(subst: &mut Subst, mut t1: Type, mut t2: Type) -> Result<(), TypeError> {
     subst.subst_shallow(&mut t1);
     subst.subst_shallow(&mut t2);
-    println!("{t1} and {t2} (after subst)\n");
     let (t1, t2) = (t1, t2);
 
     match (t1, t2) {
@@ -17,7 +15,7 @@ pub fn unify(subst: &mut Subst, mut t1: Type, mut t2: Type) -> Result<(), UnifyE
         (Type::Var(v1), Type::Var(v2)) if v1 == v2 => Ok(()),
         (Type::Var(var), ty) | (ty, Type::Var(var)) => {
             if ty.any_var(|&v| v == var) {
-                return Err(UnifyError::InfiniteType);
+                return Err(TypeError::InfiniteType);
             }
 
             subst.push(var, ty);
@@ -34,14 +32,23 @@ pub fn unify(subst: &mut Subst, mut t1: Type, mut t2: Type) -> Result<(), UnifyE
             Ok(())
         }
 
-        _ => Err(UnifyError::TypeError),
+        _ => Err(TypeError::TypeMismatch),
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum UnifyError {
+pub enum TypeError {
     InfiniteType,
-    TypeError,
+    TypeMismatch,
+}
+
+impl TypeError {
+    pub fn to_diag(self) -> DErr {
+        match self {
+            Self::InfiniteType => Diag::without_span(ErrorLevel, "infinite sized type"),
+            Self::TypeMismatch => Diag::without_span(ErrorLevel, "type mismatch"),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -53,9 +60,7 @@ impl Subst {
     }
 
     fn push(&mut self, from: TypeVar, mut to: Type) {
-        println!("add to subst: {from} -> {to}");
         self.subst(&mut to);
-        println!("applied current subst to ({to})");
         let res = self.0.insert(from, to);
 
         assert!(res.is_none());
@@ -78,7 +83,7 @@ mod tests {
         ty::TypeVar,
         typeck::{
             ty::{PrimType, Type},
-            unify::UnifyError,
+            unify::TypeError,
         },
     };
 
@@ -89,7 +94,7 @@ mod tests {
         Type::Var(TypeVar::from_u32(val))
     }
 
-    fn unify(t1: Type, t2: Type) -> Result<Vec<(u32, Type)>, UnifyError> {
+    fn unify(t1: Type, t2: Type) -> Result<Vec<(u32, Type)>, TypeError> {
         let mut subst = super::Subst::empty();
         super::unify(&mut subst, t1, t2)?;
 
@@ -115,10 +120,10 @@ mod tests {
     #[test]
     fn unify_primitive_bad() {
         let res = unify(FLOAT, BOOL);
-        assert_eq!(res, Err(UnifyError::TypeError));
+        assert_eq!(res, Err(TypeError::TypeMismatch));
 
         let res = unify(BOOL, FLOAT);
-        assert_eq!(res, Err(UnifyError::TypeError));
+        assert_eq!(res, Err(TypeError::TypeMismatch));
     }
 
     #[test]
@@ -146,7 +151,7 @@ mod tests {
     fn unify_failing_occurs() {
         let res = unify(ty_var(0), Type::Function(Vec::new(), Box::new(ty_var(0))));
 
-        assert_eq!(res, Err(UnifyError::InfiniteType));
+        assert_eq!(res, Err(TypeError::InfiniteType));
     }
 
     #[test]

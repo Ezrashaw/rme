@@ -32,14 +32,16 @@ impl PolyType {
             return ty;
         }
 
-        let first_fresh_var = self.bound_variables.len();
-        vg.0 += first_fresh_var as u32;
+        // assumption: all bound variables occur in the type
+        let first_fresh_var = vg.0 as u32;
+        vg.0 += self.bound_variables.len() as u32;
 
         ty.replace_vars(|var| {
             self.bound_variables
                 .iter()
                 .position(|&v| v == var)
-                .map(|idx| Type::Var(TypeVar::from_u32((first_fresh_var + idx) as u32)))
+                .map(|idx| idx as u32)
+                .map(|idx| Type::Var(TypeVar::from_u32(first_fresh_var + idx)))
         });
 
         ty

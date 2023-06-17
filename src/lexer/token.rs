@@ -27,8 +27,6 @@ pub enum TokenKind {
     Literal(Literal),
     /// Identifiers (names)
     Identifier(String),
-
-    // keywords
     /// Language keywords (special identifiers)
     ///
     /// Note that `true` and `false` are [`Literal`]s instead.
@@ -68,14 +66,13 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
-    /// Returns a string literal which identifies this token *as it should look
-    /// in a diagnostic*.
+    /// Returns a string literal which identifies this token *as it should be
+    /// displayed to a user*.
     ///
-    /// The caller should wrap the returned value in backticks (`` `...` ``)
-    /// before displaying in a diagnostic.
-    // FIXME: this name must be updated, we are using it in more places now
+    /// This function is often used for diagnostics. The caller should wrap the
+    /// returned value in backticks (`` `...` ``) before displaying it.
     #[must_use]
-    pub const fn diag_str(&self) -> &'static str {
+    pub const fn user_str(&self) -> &'static str {
         match self {
             Self::Literal(_) => "<float literal>",
             Self::Identifier(_) => "<identifier>",
@@ -92,7 +89,7 @@ impl TokenKind {
             Self::DoubleEquals => "==",
             Self::LeftArrow => "<",
             Self::RightArrow => ">",
-            Self::Keyword(kw) => kw.diag_str(),
+            Self::Keyword(kw) => kw.user_str(),
         }
     }
 }
@@ -161,10 +158,11 @@ impl FromStr for Keyword {
 }
 
 impl Keyword {
-    /// Derived function for getting the "diagnostic-friendly" representation
-    /// of a token. See the docs on [`TokenKind::diag_str`].
+    /// Derived function for getting the "user-friendly" representation of a
+    /// token. This function is often used for diagnostics. See the docs on
+    /// [`TokenKind::user_str`].
     #[must_use]
-    pub const fn diag_str(&self) -> &'static str {
+    pub const fn user_str(&self) -> &'static str {
         match self {
             Self::Let => "let",
             Self::Fn => "fn",

@@ -50,9 +50,8 @@ impl VarDef {
 pub struct FnDef {
     pub fn_kw: Span,
     pub name: Sp<String>,
-    pub args_open: Span,
+    pub parens: (Span, Span),
     pub args: Vec<(Sp<String>, Option<Span>)>,
-    pub args_close: Span,
     pub equals: Span,
     pub expr: Sp<Expression>,
 }
@@ -69,9 +68,8 @@ pub type FnCallArg = (Sp<Expression>, Option<Span>);
 #[derive(Clone)]
 pub enum Expression {
     Paren {
-        open: Span,
+        parens: (Span, Span),
         expr: SpBox<Expression>,
-        close: Span,
     },
     BinaryOp {
         lhs: SpBox<Expression>,
@@ -85,20 +83,19 @@ pub enum Expression {
     Literal(token::Literal),
     Variable(String),
     FunctionCall {
-        expr: SpBox<Expression>,
+        name: SpBox<Expression>,
+        parens: (Span, Span),
         args: Vec<FnCallArg>,
-        open: Span,
-        close: Span,
     },
 }
 
 impl Expression {
     pub fn spanify(self) -> Sp<Self> {
         let span = match &self {
-            Expression::Paren { open, close, .. } => Span::merge(*open, *close),
+            Expression::Paren { parens, .. } => Span::merge(parens.0, parens.1),
             Expression::BinaryOp { lhs, rhs, .. } => Span::merge(lhs.span(), rhs.span()),
             Expression::UnaryOp { op, expr } => Span::merge(op.span(), expr.span()),
-            Expression::FunctionCall { expr, close, .. } => Span::merge(expr.span(), *close),
+            Expression::FunctionCall { name, parens, .. } => Span::merge(name.span(), parens.1),
             Expression::Literal(_) | Expression::Variable(_) => {
                 panic!("cannot infer span for `{self}`")
             }

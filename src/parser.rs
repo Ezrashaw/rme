@@ -43,7 +43,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         DErr::new_err(
             format!(
                 "expected `{expected}` but found `{}`",
-                found.inner().diag_str()
+                found.inner().user_str()
             ),
             found.span(),
         )
@@ -55,7 +55,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             Ok(Sp::new(id.clone(), next.span()))
         } else {
             Err(Self::create_expected_err(
-                TokenKind::Identifier(String::new()).diag_str(),
+                TokenKind::Identifier(String::new()).user_str(),
                 next,
             ))
         }
@@ -66,7 +66,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         if *read.inner() == kind {
             Ok(read.span())
         } else {
-            Err(Self::create_expected_err(kind.diag_str(), read))
+            Err(Self::create_expected_err(kind.user_str(), read))
         }
     }
 
@@ -197,14 +197,21 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     ///
     /// Corresponds to the `<fn_def>` non-terminal.
     fn parse_fn_def(&mut self) -> Result<Sp<FnDef>, DErr> {
+        let fn_kw = self.expect(TokenKind::Keyword(Keyword::Fn))?;
+        let name = self.expect_id()?;
+        let open = self.expect(TokenKind::ParenOpen)?;
+        let args = self.parse_comma_delimited(Self::expect_id)?;
+        let close = self.expect(TokenKind::ParenClose)?;
+        let equals = self.expect(TokenKind::Equals)?;
+        let expr = self.parse_expr()?;
+        
         let fn_def = FnDef {
-            fn_kw: self.expect(TokenKind::Keyword(Keyword::Fn))?,
-            name: self.expect_id()?,
-            args_open: self.expect(TokenKind::ParenOpen)?,
-            args: self.parse_comma_delimited(Self::expect_id)?,
-            args_close: self.expect(TokenKind::ParenClose)?,
-            equals: self.expect(TokenKind::Equals)?,
-            expr: self.parse_expr()?,
+            fn_kw,
+            name,
+            parens: (open, close),
+            args,
+            equals,
+            expr,
         };
 
         Ok(fn_def.spanify())

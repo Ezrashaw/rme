@@ -2,7 +2,7 @@ use crate::RegressionTests;
 use rme::{
     ast::TypedStmt,
     parse,
-    typeck::{self, utils::TypeVarGen, TypeEnv},
+    typeck::{self, TypeEnv},
     SourceMap,
 };
 use std::io;
@@ -19,13 +19,17 @@ impl RegressionTests for TypeckTests {
         match parse(input, 0) {
             Ok(ast) => {
                 let mut env = TypeEnv::empty();
-                let mut vg = TypeVarGen::new();
                 let stmts = ast.statements.iter().map(|s| s.0.inner());
-                let tys = typeck::infer(&mut env, &mut vg, stmts.clone());
+                let tys = typeck::infer(&mut env, stmts.clone());
 
-                for (ty, stmt) in tys.iter().zip(stmts) {
-                    let ty_stmt = TypedStmt(stmt, ty);
-                    writeln!(out, "{ty_stmt}")?;
+                match tys {
+                    Ok(tys) => {
+                        for (ty, stmt) in tys.iter().zip(stmts) {
+                            let ty_stmt = TypedStmt(stmt, ty);
+                            writeln!(out, "{ty_stmt}")?;
+                        }
+                    }
+                    Err(err) => err.to_diag().emit_to_write(out, &sm)?,
                 }
             }
             Err(err) => err.emit_to_write(out, &sm)?,

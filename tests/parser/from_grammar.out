@@ -7,21 +7,17 @@ Statement(FnDef)@0..34
 | VarDef@0..34
 | | fn_kw: 0..2
 | | name: "w"@3..4
-| | args_open: 4..5
-| | args_close: 5..6
+| | parens: (4..5, 5..6)
 | | equals: 6..7
 | | expr: BinaryOp@7..34
 | | | op: Mul@11..12
 | | | lhs: Bool(true)@7..11
 | | | rhs: Paren@12..34
-| | | | open: 12..13
-| | | | close: 33..34
+| | | | parens: (12..13, 33..34)
 | | | | expr: Paren@13..33
-| | | | | open: 13..14
-| | | | | close: 32..33
+| | | | | parens: (13..14, 32..33)
 | | | | | expr: Paren@14..32
-| | | | | | open: 14..15
-| | | | | | close: 31..32
+| | | | | | parens: (14..15, 31..32)
 | | | | | | expr: BinaryOp@15..31
 | | | | | | | op: Mul@22..23
 | | | | | | | lhs: UnaryOp@15..22
@@ -30,9 +26,8 @@ Statement(FnDef)@0..34
 | | | | | | | | | op: Negation@16..17
 | | | | | | | | | expr: Bool(false)@17..22
 | | | | | | | rhs: FunctionCall@23..31
-| | | | | | | | expr: Variable("f")@23..24
-| | | | | | | | open: 24..25
-| | | | | | | | close: 30..31
+| | | | | | | | call-expr: Variable("f")@23..24
+| | | | | | | | parens: (24..25, 30..31)
 | | | | | | | | arg #0 (comma): Some(26..27)
 | | | | | | | | arg #0: Variable("t")@25..26
 | | | | | | | | arg #1 (comma): Some(28..29)
@@ -53,8 +48,7 @@ Statement(Expression)@35..64
 | | | | | op: Negation@35..36
 | | | | | expr: Bool(true)@36..40
 | | | | rhs: Paren@41..44
-| | | | | open: 41..42
-| | | | | close: 43..44
+| | | | | parens: (41..42, 43..44)
 | | | | | expr: Variable("v")@42..43
 | | | rhs: Variable("u")@45..46
 | | rhs: BinaryOp@47..64
@@ -62,8 +56,7 @@ Statement(Expression)@35..64
 | | | lhs: BinaryOp@47..60
 | | | | op: Mul@55..56
 | | | | lhs: Paren@47..55
-| | | | | open: 47..48
-| | | | | close: 54..55
+| | | | | parens: (47..48, 54..55)
 | | | | | expr: BinaryOp@48..54
 | | | | | | op: Sub@52..53
 | | | | | | lhs: UnaryOp@48..52
@@ -81,15 +74,13 @@ Statement(Expression)@65..105
 | | lhs: UnaryOp@65..102
 | | | op: Negation@65..66
 | | | expr: Paren@66..102
-| | | | open: 66..67
-| | | | close: 101..102
+| | | | parens: (66..67, 101..102)
 | | | | expr: BinaryOp@67..101
 | | | | | op: Div@69..70
 | | | | | lhs: Variable("FI")@67..69
 | | | | | rhs: FunctionCall@70..101
-| | | | | | expr: Variable("t")@70..71
-| | | | | | open: 71..72
-| | | | | | close: 100..101
+| | | | | | call-expr: Variable("t")@70..71
+| | | | | | parens: (71..72, 100..101)
 | | | | | | arg #0 (comma): Some(74..75)
 | | | | | | arg #0: Variable("LO")@72..74
 | | | | | | arg #1 (comma): None
@@ -108,8 +99,7 @@ Statement(Expression)@65..105
 | | | | | | | | | | rhs: Float(4.0)@81..82
 | | | | | | | | | rhs: Variable("U")@83..84
 | | | | | | | rhs: Paren@86..100
-| | | | | | | | open: 86..87
-| | | | | | | | close: 99..100
+| | | | | | | | parens: (86..87, 99..100)
 | | | | | | | | expr: BinaryOp@87..99
 | | | | | | | | | op: Eq@95..97
 | | | | | | | | | lhs: BinaryOp@87..95

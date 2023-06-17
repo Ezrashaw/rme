@@ -18,8 +18,7 @@ Statement(Expression)@5..13
 | UnaryOp@5..13
 | | op: Factorial@12..13
 | | expr: Paren@5..12
-| | | open: 5..6
-| | | close: 11..12
+| | | parens: (5..6, 11..12)
 | | | expr: BinaryOp@6..11
 | | | | op: Add@8..9
 | | | | lhs: Float(1.0)@6..7
@@ -41,9 +40,8 @@ Statement(Expression)@23..34
 | UnaryOp@23..34
 | | op: Factorial@33..34
 | | expr: FunctionCall@23..33
-| | | expr: Variable("function")@23..31
-| | | open: 31..32
-| | | close: 32..33
+| | | call-expr: Variable("function")@23..31
+| | | parens: (31..32, 32..33)
 -------
 
 ---AST Statement (semi: 45..46) #4---
