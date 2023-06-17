@@ -2,11 +2,10 @@ use std::fmt::{self, Display};
 
 use crate::{
     ansi::{Colour, Style, WriteStyle},
+    ast::{Ast, BinOperator, Expression, FnDef, Statement, TypedStmt, UnOperator, VarDef},
     token::{Keyword, Literal},
     ty::Type,
 };
-
-use super::{Ast, BinOperator, Expression, FnDef, Statement, TypedStmt, UnOperator, VarDef};
 
 impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -96,8 +95,8 @@ impl fmt::Display for Expression {
             },
             Self::Literal(lit) => f.write_lit(*lit),
             Self::Variable(var) => write!(f, "{var}"),
-            Self::FunctionCall { expr, args, .. } => {
-                expr.fmt(f)?;
+            Self::FunctionCall { name, args, .. } => {
+                name.fmt(f)?;
                 f.write_delimiter("(")?;
                 for (idx, arg) in args.iter().enumerate() {
                     arg.0.fmt(f)?;
@@ -149,7 +148,7 @@ trait AstDisplayExt {
 
 impl AstDisplayExt for fmt::Formatter<'_> {
     fn write_kw(&mut self, kw: Keyword) -> fmt::Result {
-        write!(self, "{}{}{} ", KW_STYLE, kw.diag_str(), Style::reset())
+        write!(self, "{}{}{} ", KW_STYLE, kw.user_str(), Style::reset())
     }
 
     fn write_lit(&mut self, lit: Literal) -> fmt::Result {

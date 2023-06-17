@@ -1,8 +1,9 @@
 use std::{fmt::Display, io};
 
-use crate::Sp;
-
-use super::{Ast, Expression, FnDef, Statement, VarDef};
+use crate::{
+    ast::{Ast, Expression, FnDef, Statement, VarDef},
+    Sp,
+};
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
@@ -94,12 +95,11 @@ pub fn dbg_fn_def(fn_def: &Sp<FnDef>, w: &mut impl io::Write, indent: AstIndent)
 
     writeln!(w, "{indent}fn_kw: {:?}", fn_def.fn_kw)?;
     writeln!(w, "{indent}name: {:?}", fn_def.name)?;
-    writeln!(w, "{indent}args_open: {:?}", fn_def.args_open)?;
+    writeln!(w, "{indent}parens: {:?}", fn_def.parens)?;
     for (idx, (arg, comma)) in fn_def.args.iter().enumerate() {
         writeln!(w, "{indent}arg #{idx} (comma): {comma:?}")?;
         writeln!(w, "{indent}arg #{idx}: {arg}")?;
     }
-    writeln!(w, "{indent}args_close: {:?}", fn_def.args_close)?;
     writeln!(w, "{indent}equals: {:?}", fn_def.equals)?;
 
     write!(w, "{indent}expr: ")?;
@@ -112,11 +112,10 @@ pub fn dbg_expr(
     indent: AstIndent,
 ) -> io::Result<()> {
     match self_.inner() {
-        Expression::Paren { open, close, expr } => {
+        Expression::Paren { parens, expr } => {
             writeln!(w, "Paren@{:?}", self_.span())?;
 
-            writeln!(w, "{indent}open: {open:?}")?;
-            writeln!(w, "{indent}close: {close:?}")?;
+            writeln!(w, "{indent}parens: {parens:?}")?;
 
             write!(w, "{indent}expr: ")?;
             dbg_expr(expr.unbox(), w, indent.mv())
@@ -146,18 +145,12 @@ pub fn dbg_expr(
         Expression::Variable(var) => {
             writeln!(w, "Variable({var:?})@{:?}", self_.span())
         }
-        Expression::FunctionCall {
-            expr,
-            args,
-            open,
-            close,
-        } => {
+        Expression::FunctionCall { name, parens, args } => {
             writeln!(w, "FunctionCall@{:?}", self_.span())?;
 
-            write!(w, "{indent}expr: ")?;
-            dbg_expr(expr.unbox(), w, indent.mv())?;
-            writeln!(w, "{indent}open: {open:?}")?;
-            writeln!(w, "{indent}close: {close:?}")?;
+            write!(w, "{indent}call-expr: ")?;
+            dbg_expr(name.unbox(), w, indent.mv())?;
+            writeln!(w, "{indent}parens: {parens:?}")?;
 
             for (idx, (arg, comma)) in args.iter().enumerate() {
                 writeln!(w, "{indent}arg #{idx} (comma): {comma:?}")?;

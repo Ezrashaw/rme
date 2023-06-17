@@ -86,12 +86,11 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         let mut expr = self.parse_factor()?;
 
         while let Some(open) = self.eat(TokenKind::ParenOpen) {
-            let fn_call = Expression::FunctionCall {
-                expr: expr.map_inner(Box::new),
-                open,
-                args: self.parse_comma_delimited(Self::parse_expr)?,
-                close: self.expect(TokenKind::ParenClose)?,
-            };
+            let name = expr.map_inner(Box::new);
+            let args = self.parse_comma_delimited(Self::parse_expr)?;
+            let parens = (open, self.expect(TokenKind::ParenClose)?);
+
+            let fn_call = Expression::FunctionCall { name, parens, args };
             expr = fn_call.spanify();
         }
 
@@ -110,12 +109,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
         Ok(match tok {
             TokenKind::ParenOpen => {
-                let expr = Expression::Paren {
-                    open: tok_span,
-                    expr: self.parse_expr()?.map_inner(Box::new),
-                    close: self.expect(TokenKind::ParenClose)?,
-                };
+                let expr = self.parse_expr()?.map_inner(Box::new);
+                let parens = (tok_span, self.expect(TokenKind::ParenClose)?);
 
+                let expr = Expression::Paren { parens, expr };
                 expr.spanify()
             }
             TokenKind::Literal(lit) => Sp::new(Expression::Literal(lit), tok_span),

@@ -1,3 +1,4 @@
 fn id(x) = x;
 id(5);
 id(true);
+id(id);

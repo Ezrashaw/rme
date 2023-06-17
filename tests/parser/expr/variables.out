@@ -31,8 +31,7 @@ Statement(Expression)@18..26
 | BinaryOp@18..26
 | | op: Add@23..24
 | | lhs: Paren@18..22
-| | | open: 18..19
-| | | close: 21..22
+| | | parens: (18..19, 21..22)
 | | | expr: UnaryOp@19..21
 | | | | op: Negation@19..20
 | | | | expr: Variable("x")@20..21
