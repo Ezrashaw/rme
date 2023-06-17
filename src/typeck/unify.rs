@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{ty::TypeVar, DErr, Diag, ErrorLevel, Span};
-
-use super::ty::Type;
+use crate::{
+    ty::{Type, TypeVar},
+    DErr, Diag, Span,
+};
 
 pub fn unify(subst: &mut Subst, mut t1: Type, mut t2: Type) -> Result<(), TypeError> {
     subst.subst_shallow(&mut t1);
@@ -14,7 +15,9 @@ pub fn unify(subst: &mut Subst, mut t1: Type, mut t2: Type) -> Result<(), TypeEr
 
         (Type::Var(v1), Type::Var(v2)) if v1 == v2 => Ok(()),
         (Type::Var(var), ty) | (ty, Type::Var(var)) => {
-            if ty.any_var(|&v| v == var) {
+            let mut occurs = false;
+            ty.walk_vars(|v| occurs |= v == var);
+            if occurs {
                 return Err(TypeError::InfiniteType);
             }
 
@@ -91,7 +94,7 @@ mod tests {
     const BOOL: Type = Type::Primitive(PrimType::Bool);
     const FLOAT: Type = Type::Primitive(PrimType::Float);
 
-    fn ty_var(val: u32) -> Type {
+    const fn ty_var(val: u32) -> Type {
         Type::Var(TypeVar::from_u32(val))
     }
 

@@ -117,10 +117,6 @@ impl<T> Sp<T> {
         Self(val, span)
     }
 
-    pub fn new_boxed(val: T, span: Span) -> SpBox<T> {
-        Sp(Box::new(val), span)
-    }
-
     pub const fn as_ref(&self) -> Sp<&T> {
         Sp::new(self.inner(), self.span())
     }
