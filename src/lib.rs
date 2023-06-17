@@ -7,14 +7,12 @@
 mod ansi;
 pub mod ast;
 mod diag;
-mod interpret;
 pub mod lexer;
 mod parser;
 mod span;
 pub mod typeck;
 
 pub use diag::*;
-pub use interpret::*;
 pub use parser::*;
 pub use span::*;
 

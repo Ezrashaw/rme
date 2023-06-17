@@ -2,8 +2,7 @@ use rme::{
     ast::Statement,
     lexer::Lexer,
     token::Token,
-    ty::TypeVar,
-    typeck::{self, Subst, TypeEnv},
+    typeck::{self, TypeEnv},
     DErr, Parser, SourceMap, Sp,
 };
 use std::io::{stdin, stdout, Write};
@@ -11,14 +10,13 @@ use std::io::{stdin, stdout, Write};
 fn main() {
     let mut source_map = SourceMap::new();
     let mut ty_env = TypeEnv::empty();
-    let mut vg = typeck::utils::TypeVarGen::new();
 
     loop {
         let stmt = get_stmt(&mut source_map);
         match stmt {
             Ok(Some(stmt)) => {
-                let ty = typeck::infer(&mut ty_env, &mut vg, stmt.inner());
-                println!("{ty}");
+                // let ty = typeck::infer(&mut ty_env, stmt.inner());
+                // println!("{ty}");
             }
             Ok(None) => {}
             Err(diag) => diag.emit(&source_map),

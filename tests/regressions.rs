@@ -15,9 +15,11 @@ use test::{
     ColorConfig, Options, OutputFormat, RunIgnored, ShouldPanic, TestDesc, TestDescAndFn, TestFn,
     TestOpts, TestType,
 };
+use typeck::TypeckTests;
 
 mod lexer;
 mod parser;
+mod typeck;
 
 pub trait RegressionTests {
     const NAMESPACE: &'static str;
@@ -33,6 +35,7 @@ fn main() -> ExitCode {
     let mut tests = Vec::new();
     generate_tests::<LexerTests>(&mut tests).unwrap();
     generate_tests::<ParserTests>(&mut tests).unwrap();
+    generate_tests::<TypeckTests>(&mut tests).unwrap();
 
     let success = test::run_tests_console(&TEST_OPTIONS, tests).unwrap();
 

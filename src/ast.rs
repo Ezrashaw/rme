@@ -1,4 +1,4 @@
-use crate::{token, Sp, SpBox, Span};
+use crate::{token, ty::Type, Sp, SpBox, Span};
 
 #[cfg(feature = "ast-debug")]
 pub mod debug;
@@ -8,6 +8,9 @@ mod display;
 pub struct Ast {
     pub statements: Vec<(Sp<Statement>, Span)>,
 }
+
+// FIXME: remove, this is so typeck regression tests work
+pub struct TypedStmt<'a>(pub &'a Statement, pub &'a Type);
 
 #[derive(Clone)]
 pub enum Statement {

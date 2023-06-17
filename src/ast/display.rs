@@ -1,11 +1,12 @@
-use std::fmt;
+use std::fmt::{self, Display};
 
 use crate::{
     ansi::{Colour, Style, WriteStyle},
     token::{Keyword, Literal},
+    ty::Type,
 };
 
-use super::{Ast, BinOperator, Expression, FnDef, Statement, UnOperator, VarDef};
+use super::{Ast, BinOperator, Expression, FnDef, Statement, TypedStmt, UnOperator, VarDef};
 
 impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -19,41 +20,64 @@ impl fmt::Display for Ast {
     }
 }
 
+fn display_stmt(stmt: &Statement, ty: Option<&Type>, f: &mut fmt::Formatter) -> fmt::Result {
+    match stmt {
+        Statement::Expr(expr) => {
+            expr.fmt(f)?;
+            f.write_ty_annotation(ty)
+        }
+        Statement::VarDef(def) => display_var_def(def.inner(), ty, f),
+        Statement::FnDef(def) => display_fn_def(def.inner(), ty, f),
+    }
+}
+
+impl fmt::Display for TypedStmt<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        display_stmt(self.0, Some(self.1), f)
+    }
+}
+
 impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Expr(expr) => expr.fmt(f),
-            Self::VarDef(def) => def.fmt(f),
-            Self::FnDef(def) => def.fmt(f),
-        }
+        display_stmt(self, None, f)
     }
+}
+
+fn display_var_def(var_def: &VarDef, ty: Option<&Type>, f: &mut fmt::Formatter) -> fmt::Result {
+    f.write_kw(Keyword::Let)?;
+    var_def.name.fmt(f)?;
+    f.write_ty_annotation(ty)?;
+    f.write_punct(" = ")?;
+    var_def.expr.fmt(f)
 }
 
 impl fmt::Display for VarDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_kw(Keyword::Let)?;
-        self.name.fmt(f)?;
-        f.write_punct(" = ")?;
-        self.expr.fmt(f)
+        display_var_def(self, None, f)
     }
+}
+
+fn display_fn_def(fn_def: &FnDef, ty: Option<&Type>, f: &mut fmt::Formatter) -> fmt::Result {
+    f.write_kw(Keyword::Fn)?;
+    fn_def.name.fmt(f)?;
+    f.write_delimiter("(")?;
+
+    for (idx, arg) in fn_def.args.iter().enumerate() {
+        arg.0.fmt(f)?;
+        if idx < fn_def.args.len() - 1 {
+            f.write_punct(", ")?;
+        }
+    }
+
+    f.write_delimiter(")")?;
+    f.write_ty_annotation(ty)?;
+    f.write_punct(" = ")?;
+    fn_def.expr.fmt(f)
 }
 
 impl fmt::Display for FnDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_kw(Keyword::Fn)?;
-        self.name.fmt(f)?;
-        f.write_delimiter("(")?;
-
-        for (idx, arg) in self.args.iter().enumerate() {
-            arg.0.fmt(f)?;
-            if idx < self.args.len() - 1 {
-                f.write_punct(", ")?;
-            }
-        }
-
-        f.write_delimiter(")")?;
-        f.write_punct(" = ")?;
-        self.expr.fmt(f)
+        display_fn_def(self, None, f)
     }
 }
 
@@ -120,6 +144,7 @@ trait AstDisplayExt {
     fn write_punct(&mut self, punct: &'static str) -> fmt::Result;
     fn write_op(&mut self, op: &'static str) -> fmt::Result;
     fn write_delimiter(&mut self, op: &'static str) -> fmt::Result;
+    fn write_ty_annotation(&mut self, ty: Option<&Type>) -> fmt::Result;
 }
 
 impl AstDisplayExt for fmt::Formatter<'_> {
@@ -146,5 +171,14 @@ impl AstDisplayExt for fmt::Formatter<'_> {
 
     fn write_delimiter(&mut self, delim: &'static str) -> fmt::Result {
         write!(self, "{}{delim}{}", DELIM_STYLE, Style::reset())
+    }
+
+    fn write_ty_annotation(&mut self, ty: Option<&Type>) -> fmt::Result {
+        if let Some(ty) = ty {
+            self.write_punct(": ")?;
+            ty.fmt(self)?;
+        }
+
+        Ok(())
     }
 }

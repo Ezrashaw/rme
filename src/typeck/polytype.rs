@@ -21,7 +21,7 @@ impl PolyType {
     pub fn fresh_var(vg: &mut TypeVarGen) -> Self {
         Self {
             bound_variables: Vec::new(),
-            ty: vg.next_ty(),
+            ty: vg.fresh_ty(),
         }
     }
 
@@ -63,7 +63,7 @@ impl fmt::Display for PolyType {
         write!(f, "∀")?;
 
         for (idx, var) in self.bound_variables.iter().enumerate() {
-            write!(f, "?{var}")?;
+            write!(f, "{var}")?;
             if idx < self.bound_variables.len() - 1 {
                 write!(f, ", ")?;
             }
@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn polytype_instantiation1() {
         let mut var_gen = TypeVarGen::new();
-        let ty_var = var_gen.next();
+        let ty_var = var_gen.fresh_var();
         let tv = Type::Var(ty_var);
 
         let polytype = PolyType::new(vec![ty_var], Type::Function(vec![tv.clone()], Box::new(tv)));
@@ -100,8 +100,8 @@ mod tests {
     #[test]
     fn polytype_instantiation2() {
         let mut var_gen = TypeVarGen::new();
-        let ty_var1 = var_gen.next();
-        let ty_var2 = var_gen.next();
+        let ty_var1 = var_gen.fresh_var();
+        let ty_var2 = var_gen.fresh_var();
         let tv1 = Type::Var(ty_var1);
         let tv2 = Type::Var(ty_var2);
 

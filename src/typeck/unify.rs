@@ -5,8 +5,10 @@ use crate::ty::TypeVar;
 use super::ty::Type;
 
 pub fn unify(subst: &mut Subst, mut t1: Type, mut t2: Type) -> Result<(), UnifyError> {
+    println!("{t1} and {t2}");
     subst.subst_shallow(&mut t1);
     subst.subst_shallow(&mut t2);
+    println!("{t1} and {t2} (after subst)\n");
     let (t1, t2) = (t1, t2);
 
     match (t1, t2) {
@@ -51,7 +53,9 @@ impl Subst {
     }
 
     fn push(&mut self, from: TypeVar, mut to: Type) {
+        println!("add to subst: {from} -> {to}");
         self.subst(&mut to);
+        println!("applied current subst to ({to})");
         let res = self.0.insert(from, to);
 
         assert!(res.is_none());
@@ -62,7 +66,7 @@ impl Subst {
     }
 
     pub fn subst_shallow(&self, ty: &mut Type) {
-        if let Type::Var(var) = ty && let Some(replace) = self.0.get(&var).cloned()  {
+        if let Type::Var(var) = ty && let Some(replace) = self.0.get(var).cloned()  {
             *ty = replace;
         }
     }
@@ -222,7 +226,7 @@ mod tests {
         let id_fn2 = Type::Function(vec![ty_var(1)], Box::new(ty_var(1)));
         let subst = unify(
             Type::Function(vec![id_fn2.clone()], Box::new(id_fn2.clone())),
-            id_fn.clone(),
+            id_fn,
         )
         .unwrap();
 
