@@ -43,7 +43,7 @@ pub enum TypeError {
 }
 
 impl TypeError {
-    pub fn to_diag(self) -> DErr {
+    pub fn into_diag(self) -> DErr {
         match self {
             Self::InfiniteType => Diag::without_span(ErrorLevel, "infinite sized type"),
             Self::TypeMismatch => Diag::without_span(ErrorLevel, "type mismatch"),
@@ -55,6 +55,7 @@ impl TypeError {
 pub struct Subst(HashMap<TypeVar, Type>);
 
 impl Subst {
+    #[must_use]
     pub fn empty() -> Self {
         Self(HashMap::new())
     }
@@ -211,8 +212,8 @@ mod tests {
     #[test]
     fn unify_composing_subst() {
         let args1 = vec![ty_var(0), ty_var(1)];
-        let arg2 = Type::Function(Vec::new(), Box::new(ty_var(0)));
-        let args2 = vec![FLOAT, arg2];
+        let arg = Type::Function(Vec::new(), Box::new(ty_var(0)));
+        let args2 = vec![FLOAT, arg];
         let subst = unify(
             Type::Function(args1, Box::new(BOOL)),
             Type::Function(args2, Box::new(BOOL)),

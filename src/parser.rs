@@ -204,7 +204,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         let close = self.expect(TokenKind::ParenClose)?;
         let equals = self.expect(TokenKind::Equals)?;
         let expr = self.parse_expr()?;
-        
+
         let fn_def = FnDef {
             fn_kw,
             name,

@@ -1,20 +1,13 @@
-use rme::{
-    ast::Statement,
-    lexer::Lexer,
-    token::Token,
-    typeck::{self, TypeEnv},
-    DErr, Parser, SourceMap, Sp,
-};
+use rme::{ast::Statement, lexer::Lexer, token::Token, DErr, Parser, SourceMap, Sp};
 use std::io::{stdin, stdout, Write};
 
 fn main() {
     let mut source_map = SourceMap::new();
-    let mut ty_env = TypeEnv::empty();
 
     loop {
         let stmt = get_stmt(&mut source_map);
         match stmt {
-            Ok(Some(stmt)) => {
+            Ok(Some(_)) => {
                 // let ty = typeck::infer(&mut ty_env, stmt.inner());
                 // println!("{ty}");
             }

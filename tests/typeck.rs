@@ -29,7 +29,7 @@ impl RegressionTests for TypeckTests {
                             writeln!(out, "{ty_stmt}")?;
                         }
                     }
-                    Err(err) => err.to_diag().emit_to_write(out, &sm)?,
+                    Err(err) => err.into_diag().emit_to_write(out, &sm)?,
                 }
             }
             Err(err) => err.emit_to_write(out, &sm)?,
