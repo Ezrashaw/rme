@@ -1,4 +1,4 @@
-[1;3;31merror[0m: expected `=` but found `<float literal>`
+[31;1;3merror[0m: expected `=` but found `<float literal>`
 [38;5;244;1m  |[0m 
 [38;5;244;1m1 |[0m let x 1 + 1;
-[38;5;244;1m  |[0m       [1;96m^[0m
+[38;5;244;1m  |[0m       [96;1m^[0m

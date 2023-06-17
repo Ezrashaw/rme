@@ -1,8 +1,10 @@
 use std::fmt::Debug;
 
+use crate::ansi::{Colour, Style, WriteStyle};
+
 pub trait DiagnosticLevel: Debug {
     fn name(&self) -> &'static str;
-    fn ansi_colour_code(&self) -> &'static str;
+    fn style(&self) -> WriteStyle;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -13,8 +15,8 @@ impl DiagnosticLevel for ErrorLevel {
         "error"
     }
 
-    fn ansi_colour_code(&self) -> &'static str {
-        "31"
+    fn style(&self) -> WriteStyle {
+        Style::fg(Colour::Red)
     }
 }
 
@@ -34,11 +36,11 @@ impl DiagnosticLevel for SubDiagLevel {
         }
     }
 
-    fn ansi_colour_code(&self) -> &'static str {
+    fn style(&self) -> WriteStyle {
         match self {
-            Self::Info => "36",
-            Self::Help => "38;5;99",
-            Self::Note => "92",
+            Self::Info => Style::fg(Colour::Cyan),
+            Self::Help => Style::fg(Colour::BrightMagenta),
+            Self::Note => Style::fg(Colour::BrightGreen),
         }
     }
 }

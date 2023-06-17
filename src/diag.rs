@@ -1,15 +1,15 @@
-// FIXME: bring this over to the new ansi infrastructure
-
 use std::{
     fmt::{Debug, Display},
     io::{self, stdout, Write},
 };
 
-use crate::{SourceMap, Span};
+use crate::{
+    ansi::{Colour, Style, WriteStyle},
+    SourceMap, Span,
+};
 
-pub use level::{ErrorLevel, SubDiagLevel};
+pub use level::{DiagnosticLevel, ErrorLevel, SubDiagLevel};
 
-use self::level::DiagnosticLevel;
 mod level;
 
 pub type DErr = Diag<ErrorLevel>;
@@ -37,28 +37,23 @@ impl<L: DiagnosticLevel> Drop for Diag<L> {
 }
 
 impl Diag<ErrorLevel> {
-    pub fn new_err(msg: impl Display, span: Span) -> Self {
-        Self::new(ErrorLevel, msg, span)
+    pub fn error(msg: impl Display, span: Span) -> Self {
+        Self::new(ErrorLevel, msg, Some(span))
+    }
+}
+
+impl Diag<SubDiagLevel> {
+    pub fn sub_diag(level: SubDiagLevel, msg: impl Display, span: Option<Span>) -> Self {
+        Self::new(level, msg, span)
     }
 }
 
 impl<L: DiagnosticLevel> Diag<L> {
-    pub fn new(level: L, msg: impl Display, span: Span) -> Self {
+    fn new(level: L, msg: impl Display, span: Option<Span>) -> Self {
         Self {
             level,
             msg: msg.to_string(),
-            span: Some(span),
-            span_tag: None,
-            emitted: false,
-            sub_diags: Vec::new(),
-        }
-    }
-
-    pub fn without_span(level: L, msg: impl Display) -> Self {
-        Self {
-            level,
-            msg: msg.to_string(),
-            span: None,
+            span,
             span_tag: None,
             emitted: false,
             sub_diags: Vec::new(),
@@ -71,7 +66,7 @@ impl<L: DiagnosticLevel> Diag<L> {
     }
 
     pub fn span_tag(&mut self, tag: impl Display) {
-        assert!(self.span.is_some());
+        assert!(self.span.is_some() && self.span_tag.is_none());
         self.span_tag = Some(tag.to_string());
     }
 
@@ -98,17 +93,16 @@ impl<L: DiagnosticLevel> Diag<L> {
         source_map: &SourceMap,
         subd_indent: Option<usize>,
     ) -> io::Result<()> {
-        if self.span.is_none() {
-            if let Some(indent) = subd_indent {
-                write!(w, "{:indent$}= ", "")?;
-            }
+        if let Some(indent) = subd_indent {
+            write!(w, "{:indent$}= ", "")?;
         }
 
         writeln!(
             w,
-            "\x1B[1;3;{}m{}\x1B[0m: {}",
-            self.level.ansi_colour_code(),
+            "{}{}{}: {}",
+            self.level.style().bold().italic(),
             self.level.name(),
+            Style::reset(),
             self.msg
         )?;
 
@@ -155,8 +149,8 @@ impl<L: DiagnosticLevel> Diag<L> {
     }
 }
 
-const RESET: &str = "\x1B[0m";
-const SPAN_TAG: &str = "\x1B[1;96m";
+const RESET: Style = Style::reset();
+const SPAN_TAG: WriteStyle = Style::fg(Colour::BrightCyan).bold();
 
 fn write_line_start(
     w: &mut impl Write,
@@ -165,5 +159,9 @@ fn write_line_start(
 ) -> io::Result<()> {
     let margin = margin.unwrap_or_default();
     let line_num = line_num.unwrap_or_default();
-    write!(w, "\x1B[38;5;244;1m{line_num:margin$} |{RESET} ")
+    write!(
+        w,
+        "{}{line_num:margin$} |{RESET} ",
+        Style::fg(Colour::Colour256(244)).bold()
+    )
 }

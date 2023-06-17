@@ -11,11 +11,12 @@
 //! precise control is needed. See the documentation on both members for more
 //! information.
 
+use std::str::FromStr;
+
 use crate::{
     token::{Keyword, Literal, Token, TokenKind},
-    DErr, Diag, Span, SubDiag, SubDiagLevel,
+    DErr, Diag, Span, SubDiagLevel,
 };
-use std::str::FromStr;
 
 pub(crate) mod token;
 
@@ -193,7 +194,7 @@ impl<'inp> Lexer<'inp> {
                 if let Ok(num) = literal.parse::<f32>() {
                     TokenKind::Literal(Literal::Float(num))
                 } else {
-                    return Some(Err(DErr::new_err(
+                    return Some(Err(Diag::error(
                         "invalid float literal",
                         self.new_span(span_start),
                     )));
@@ -202,13 +203,14 @@ impl<'inp> Lexer<'inp> {
 
             // if the character isn't ASCII, then emit a distinct error
             ch if !ch.is_ascii() => {
-                let mut err = Diag::new_err("input is not ASCII", self.new_span(span_start));
+                let mut err = Diag::error("input is not ASCII", self.new_span(span_start));
                 err.span_tag("this character is invalid in RME");
                 // This is a bit of an understatement, *all* lexed spans after
                 // here might break. I'm not too concerned about this though.
-                err.add_subdiag(SubDiag::without_span(
+                err.add_subdiag(Diag::sub_diag(
                     SubDiagLevel::Note,
                     "the provided span may not be correct",
+                    None,
                 ));
 
                 // Every (non-ASCII) UTF-8 character begins with a number of
@@ -225,7 +227,7 @@ impl<'inp> Lexer<'inp> {
             // tokens
             ch => {
                 //
-                return Some(Err(DErr::new_err(
+                return Some(Err(Diag::error(
                     format!("invalid start of token `{}`", ch as char),
                     self.new_span(span_start),
                 )));
