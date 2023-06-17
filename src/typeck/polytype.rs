@@ -1,11 +1,13 @@
-use std::{collections::HashSet, fmt};
+use std::fmt;
 
-use crate::ty::{Type, TypeVar};
-
-use super::utils::TypeVarGen;
+use crate::{
+    ty::{Type, TypeVar},
+    typeck::utils::TypeVarGen,
+};
 
 #[derive(Debug)]
 pub(super) struct PolyType {
+    // FIXME: replace this with a `HashSet`
     bound_variables: Vec<TypeVar>,
     ty: Type,
 }
@@ -47,12 +49,8 @@ impl PolyType {
         ty
     }
 
-    pub fn ty(&self) -> &Type {
+    pub const fn ty(&self) -> &Type {
         &self.ty
-    }
-
-    pub fn bound_vars(&self) -> &[TypeVar] {
-        &self.bound_variables
     }
 
     pub fn into_inner(self) -> (Vec<TypeVar>, Type) {

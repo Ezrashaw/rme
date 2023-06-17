@@ -10,25 +10,9 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn any_var(&self, mut f: impl FnMut(&TypeVar) -> bool) -> bool {
-        let mut val = false;
-        // FIXME: this isn't that efficient, we should stop when we see `true`
-        self.walk_(&mut |ty| {
-            if let Type::Var(v) = ty && f(v) {
-                val = true;
-            }
-        });
-
-        val
-    }
-
-    pub fn walk(&self, mut f: impl FnMut(&Type)) {
-        self.walk_(&mut |ty| f(ty));
-    }
-
-    pub fn replace_vars(&mut self, mut f: impl FnMut(TypeVar) -> Option<Type>) {
+    pub fn replace_vars(&mut self, mut f: impl FnMut(TypeVar) -> Option<Self>) {
         self.walk_mut_(&mut |ty| {
-            if let Type::Var(v) = ty {
+            if let Self::Var(v) = ty {
                 if let Some(new_ty) = f(*v) {
                     *ty = new_ty;
                 }
@@ -36,26 +20,30 @@ impl Type {
         });
     }
 
-    pub fn walk_mut(&mut self, mut f: impl FnMut(&mut Type)) {
-        self.walk_mut_(&mut f);
+    pub fn walk_vars(&self, mut f: impl FnMut(TypeVar)) {
+        self.walk_(&mut |ty| {
+            if let Self::Var(var) = ty {
+                f(*var);
+            }
+        });
     }
 
-    fn walk_(&self, f: &mut impl FnMut(&Type)) {
+    fn walk_(&self, f: &mut impl FnMut(&Self)) {
         f(self);
         match self {
-            Type::Primitive(_) | Type::Var(_) => {}
-            Type::Function(args, ret) => {
+            Self::Primitive(_) | Self::Var(_) => {}
+            Self::Function(args, ret) => {
                 ret.walk_(f);
                 args.iter().for_each(|ty| ty.walk_(f));
             }
         }
     }
 
-    fn walk_mut_(&mut self, f: &mut impl FnMut(&mut Type)) {
+    fn walk_mut_(&mut self, f: &mut impl FnMut(&mut Self)) {
         f(self);
         match self {
-            Type::Primitive(_) | Type::Var(_) => {}
-            Type::Function(args, ret) => {
+            Self::Primitive(_) | Self::Var(_) => {}
+            Self::Function(args, ret) => {
                 ret.walk_mut_(f);
                 args.iter_mut().for_each(|ty| ty.walk_mut_(f));
             }
@@ -74,7 +62,8 @@ pub enum PrimType {
 pub struct TypeVar(u32);
 
 impl TypeVar {
-    pub fn value(&self) -> u32 {
+    #[must_use]
+    pub const fn value(&self) -> u32 {
         self.0
     }
 
@@ -91,7 +80,7 @@ impl From<PrimType> for Type {
 
 impl PrimType {
     #[must_use]
-    pub fn from_lit(value: Literal) -> Self {
+    pub const fn from_lit(value: Literal) -> Self {
         match value {
             Literal::Float(_) => Self::Float,
             Literal::Bool(_) => Self::Bool,

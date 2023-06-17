@@ -170,7 +170,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     ///
     /// Corresponds to the `<statement>` non-terminal.
     fn parse_stmt(&mut self) -> Result<Sp<Statement>, DErr> {
-        let stmt = match self.peek()?.as_parts().0 {
+        let stmt = match self.peek()?.inner() {
             TokenKind::Keyword(Keyword::Let) => Statement::VarDef(self.parse_var_def()?),
             TokenKind::Keyword(Keyword::Fn) => Statement::FnDef(self.parse_fn_def()?),
             _ => Statement::Expr(self.parse_expr()?),

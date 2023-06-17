@@ -1,10 +1,7 @@
-#![allow(unused)]
-
 mod infer;
 mod polytype;
-pub(crate) mod ty;
+pub mod ty;
 mod unify;
-pub mod utils;
+mod utils;
 
 pub use infer::{infer, TypeEnv};
-pub use unify::Subst;

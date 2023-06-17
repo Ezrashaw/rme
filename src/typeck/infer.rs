@@ -1,13 +1,12 @@
 use std::{
-    collections::HashMap,
-    fmt::{self, Display},
+    collections::{HashMap, HashSet},
+    fmt,
 };
 
 use crate::{
     ast::{Expression, FnDef, Statement},
     ty::Type,
     typeck::ty::PrimType,
-    Sp,
 };
 
 use super::{
@@ -31,8 +30,8 @@ pub fn infer<'a>(
 }
 
 fn infer_stmt<'a>(env: &mut TypeEnv<'a>, stmt: &'a Statement) -> Result<Type, TypeError> {
-    let mut vg = &mut TypeVarGen::new();
-    let mut subst = &mut Subst::empty();
+    let vg = &mut TypeVarGen::new();
+    let subst = &mut Subst::empty();
 
     match stmt {
         Statement::Expr(expr) => infer_expr(env, vg, subst, expr.inner()),
@@ -121,30 +120,20 @@ impl<'a> TypeEnv<'a> {
     pub(super) fn generalize_ty(&self, ty: Type) -> PolyType {
         // when writing comments: note that there are likely to be less
         // variables in the type than the environment, so this goes first
-        let mut vars_in_ty = Vec::new();
-        ty.walk(|ty| {
-            if let Type::Var(var) = ty {
-                if !vars_in_ty.contains(var) {
-                    vars_in_ty.push(*var);
-                }
-            }
+        let mut vars_in_ty = HashSet::new();
+        ty.walk_vars(|var| {
+            vars_in_ty.insert(var);
         });
 
-        // FIXME: this is sloooow; put hashsets everywhere
-        for var in self.variables.values() {
-            if vars_in_ty.is_empty() {
-                break;
+        if !vars_in_ty.is_empty() {
+            for var in self.variables.values() {
+                var.ty().walk_vars(|var| {
+                    vars_in_ty.remove(&var);
+                });
             }
-
-            var.ty().walk(|ty| {
-                if let Type::Var(var) = ty && let Some(idx) = vars_in_ty.iter().position(|v| v == var) {
-                    // FIXME: when not debugging, this can be swap_remove
-                    vars_in_ty.remove(idx);
-                }
-            });
         }
 
-        PolyType::new(vars_in_ty, ty)
+        PolyType::new(Vec::from_iter(vars_in_ty), ty)
     }
 
     fn push(&mut self, name: &'a str, ty: &Type) {
@@ -162,7 +151,7 @@ impl<'a> TypeEnv<'a> {
         vg: &mut TypeVarGen,
         subst: &mut Subst,
         var_names: &[&'a str],
-        mut f: impl FnOnce(&mut Self, &mut TypeVarGen, &mut Subst) -> T,
+        f: impl FnOnce(&mut Self, &mut TypeVarGen, &mut Subst) -> T,
     ) -> (T, Vec<Type>) {
         let mut shadowed_vars = HashMap::<&'a str, PolyType>::with_capacity(var_names.len());
 
@@ -198,7 +187,7 @@ impl fmt::Display for TypeEnv<'_> {
             writeln!(f, "{var}: {polytype}")?;
         }
 
-        write!(f, "----------------------");
+        write!(f, "----------------------")?;
 
         Ok(())
     }
@@ -219,7 +208,7 @@ mod tests {
     fn generalize(env: TypeEnv, ty: Type, expected_bound_vars: &[TypeVar]) {
         let polytype = env.generalize_ty(ty);
 
-        assert_eq!(polytype.bound_vars(), expected_bound_vars);
+        assert_eq!(polytype.into_inner().0, expected_bound_vars);
     }
 
     #[test]
