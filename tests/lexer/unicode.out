@@ -1,22 +1,22 @@
-[1;3;31merror[0m: input is not ASCII
+[31;1;3merror[0m: input is not ASCII
 [38;5;244;1m  |[0m 
 [38;5;244;1m1 |[0m ®~🇺🇸
-[38;5;244;1m  |[0m [1;96m^[0m [1;96mthis character is invalid in RME[0m
+[38;5;244;1m  |[0m [96;1m^[0m [96;1mthis character is invalid in RME[0m
 [38;5;244;1m  |[0m 
-  = [1;3;92mnote[0m: the provided span may not be correct
-[1;3;31merror[0m: invalid start of token `~`
-[38;5;244;1m  |[0m 
-[38;5;244;1m1 |[0m ®~🇺🇸
-[38;5;244;1m  |[0m   [1;96m^[0m
-[1;3;31merror[0m: input is not ASCII
+  = [92;1;3mnote[0m: the provided span may not be correct
+[31;1;3merror[0m: invalid start of token `~`
 [38;5;244;1m  |[0m 
 [38;5;244;1m1 |[0m ®~🇺🇸
-[38;5;244;1m  |[0m    [1;96m^[0m [1;96mthis character is invalid in RME[0m
-[38;5;244;1m  |[0m 
-  = [1;3;92mnote[0m: the provided span may not be correct
-[1;3;31merror[0m: input is not ASCII
+[38;5;244;1m  |[0m   [96;1m^[0m
+[31;1;3merror[0m: input is not ASCII
 [38;5;244;1m  |[0m 
 [38;5;244;1m1 |[0m ®~🇺🇸
-[38;5;244;1m  |[0m        [1;96m^[0m [1;96mthis character is invalid in RME[0m
+[38;5;244;1m  |[0m    [96;1m^[0m [96;1mthis character is invalid in RME[0m
 [38;5;244;1m  |[0m 
-  = [1;3;92mnote[0m: the provided span may not be correct
+  = [92;1;3mnote[0m: the provided span may not be correct
+[31;1;3merror[0m: input is not ASCII
+[38;5;244;1m  |[0m 
+[38;5;244;1m1 |[0m ®~🇺🇸
+[38;5;244;1m  |[0m        [96;1m^[0m [96;1mthis character is invalid in RME[0m
+[38;5;244;1m  |[0m 
+  = [92;1;3mnote[0m: the provided span may not be correct

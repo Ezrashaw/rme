@@ -4,7 +4,7 @@ use crate::{
     ast::{Ast, FnDef, Statement, VarDef},
     lexer::Lexer,
     token::{Keyword, Token, TokenKind},
-    DErr, Sp, Span,
+    DErr, Diag, Sp, Span,
 };
 
 mod expr;
@@ -30,17 +30,17 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     fn next(&mut self) -> Result<Token, DErr> {
         self.input
             .next()
-            .ok_or_else(|| DErr::new_err("unexpected end of input", Span::EOF))
+            .ok_or_else(|| Diag::error("unexpected end of input", Span::EOF))
     }
 
     fn peek(&mut self) -> Result<&Token, DErr> {
         self.input
             .peek()
-            .ok_or_else(|| DErr::new_err("unexpected end of input", Span::EOF))
+            .ok_or_else(|| Diag::error("unexpected end of input", Span::EOF))
     }
 
     fn create_expected_err(expected: &str, found: Token) -> DErr {
-        DErr::new_err(
+        Diag::error(
             format!(
                 "expected `{expected}` but found `{}`",
                 found.inner().user_str()
@@ -157,7 +157,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         // this is different from `Parser::parse` which eagerly parses while
         // there are tokens remaining
         if let Some(tok) = self.input.next() {
-            return Err(DErr::new_err(
+            return Err(Diag::error(
                 "extraneous input",
                 Span::merge(tok.span(), Span::EOF),
             ));

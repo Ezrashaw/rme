@@ -1,6 +1,6 @@
 Identifier("id")@7..9
-[1;3;31merror[0m: invalid start of token `~`
+[31;1;3merror[0m: invalid start of token `~`
 [38;5;244;1m  |[0m 
 [38;5;244;1m1 |[0m 		   		id ~
-[38;5;244;1m  |[0m           [1;96m^[0m
+[38;5;244;1m  |[0m           [96;1m^[0m
 Literal(Float(1.0))@24..25

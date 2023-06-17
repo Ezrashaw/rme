@@ -94,12 +94,12 @@ impl fmt::Display for WriteStyle {
 
         if let Some(fg) = self.fg {
             maybe_semi(f)?;
-            write!(f, "{}", fg.fg_code())?;
+            fg.write_fg(f)?;
         }
 
         if let Some(bg) = self.bg {
             maybe_semi(f)?;
-            write!(f, "{}", bg.bg_code())?;
+            bg.write_bg(f)?;
         }
 
         if self.bold {
@@ -117,28 +117,45 @@ impl fmt::Display for WriteStyle {
 }
 
 #[derive(Clone, Copy)]
+#[repr(u8)]
 pub enum Colour {
-    Cyan,
-    Magenta,
-    Yellow,
-    BrightBlack,
-    BrightMagenta,
-    BrightCyan,
+    Colour256(u8),
+
+    Red = 31,
+    Yellow = 33,
+    Magenta = 35,
+    Cyan = 36,
+    BrightBlack = 90,
+    BrightGreen = 92,
+    BrightMagenta = 95,
+    BrightCyan = 96,
 }
 
 impl Colour {
-    const fn fg_code(self) -> u8 {
-        match self {
-            Colour::Yellow => 33,
-            Colour::Magenta => 35,
-            Colour::Cyan => 36,
-            Colour::BrightBlack => 90,
-            Colour::BrightMagenta => 95,
-            Colour::BrightCyan => 96,
-        }
+    fn write_fg(self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let code = match self {
+            Colour::Colour256(code) => return write!(f, "38;5;{code}"),
+            _ => self.discriminant(),
+        };
+
+        write!(f, "{code}")
     }
 
-    const fn bg_code(self) -> u8 {
-        self.fg_code() + 10
+    fn write_bg(self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let code = match self {
+            Colour::Colour256(code) => return write!(f, "48;5;{code}"),
+            _ => self.discriminant() + 10,
+        };
+
+        write!(f, "{code}")
+    }
+
+    // taken from `https://doc.rust-lang.org/std/mem/fn.discriminant.html`
+    fn discriminant(&self) -> u8 {
+        // SAFETY: Because `Self` is marked `repr(u8)`, its layout is a
+        //         `repr(C)` `union` between `repr(C)` structs, each of which
+        //         has the `u8` discriminant as its first field, so we can read
+        //         the discriminant without offsetting the pointer.
+        unsafe { *<*const _>::from(self).cast::<u8>() }
     }
 }

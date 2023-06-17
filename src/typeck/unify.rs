@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{ty::TypeVar, DErr, Diag, ErrorLevel};
+use crate::{ty::TypeVar, DErr, Diag, ErrorLevel, Span};
 
 use super::ty::Type;
 
@@ -45,8 +45,8 @@ pub enum TypeError {
 impl TypeError {
     pub fn into_diag(self) -> DErr {
         match self {
-            Self::InfiniteType => Diag::without_span(ErrorLevel, "infinite sized type"),
-            Self::TypeMismatch => Diag::without_span(ErrorLevel, "type mismatch"),
+            Self::InfiniteType => Diag::error("infinite sized type", Span::ALL),
+            Self::TypeMismatch => Diag::error("type mismatch", Span::ALL),
         }
     }
 }
