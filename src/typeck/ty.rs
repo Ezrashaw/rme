@@ -128,6 +128,10 @@ impl fmt::Display for PrimType {
 
 impl fmt::Display for TypeVar {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "?{}", self.0)
+        write!(
+            f,
+            "?{}",
+            (TryInto::<u8>::try_into(self.0).unwrap() + b'a') as char
+        )
     }
 }
