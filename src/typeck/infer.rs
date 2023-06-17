@@ -111,6 +111,7 @@ pub struct TypeEnv<'a> {
 }
 
 impl<'a> TypeEnv<'a> {
+    #[must_use]
     pub fn empty() -> Self {
         Self {
             variables: HashMap::new(),
@@ -130,7 +131,7 @@ impl<'a> TypeEnv<'a> {
         });
 
         // FIXME: this is sloooow; put hashsets everywhere
-        for (_, var) in self.variables.iter() {
+        for var in self.variables.values() {
             if vars_in_ty.is_empty() {
                 break;
             }
@@ -140,7 +141,7 @@ impl<'a> TypeEnv<'a> {
                     // FIXME: when not debugging, this can be swap_remove
                     vars_in_ty.remove(idx);
                 }
-            })
+            });
         }
 
         PolyType::new(vars_in_ty, ty)
@@ -249,6 +250,6 @@ mod tests {
 
         let ty = Type::Function(vec![var_ty2], Box::new(VAR_TY));
 
-        generalize(env, ty, &[ty_var2])
+        generalize(env, ty, &[ty_var2]);
     }
 }

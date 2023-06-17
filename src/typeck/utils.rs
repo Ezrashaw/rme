@@ -9,6 +9,7 @@ impl Default for TypeVarGen {
 }
 
 impl TypeVarGen {
+    #[must_use]
     pub fn new() -> Self {
         Self(0)
     }

@@ -87,7 +87,7 @@ fn generate_tests<T: RegressionTests>(
                 name: test::TestName::DynTestName(test_name),
                 ignore: false,
                 ignore_message: None,
-                source_file: Box::leak(file.display().to_string().into_boxed_str()),
+                source_file: "",
                 start_line: 0,
                 start_col: 0,
                 end_line: 0,

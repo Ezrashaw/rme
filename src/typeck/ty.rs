@@ -23,7 +23,7 @@ impl Type {
     }
 
     pub fn walk(&self, mut f: impl FnMut(&Type)) {
-        self.walk_(&mut |ty| f(ty))
+        self.walk_(&mut |ty| f(ty));
     }
 
     pub fn replace_vars(&mut self, mut f: impl FnMut(TypeVar) -> Option<Type>) {
@@ -33,11 +33,11 @@ impl Type {
                     *ty = new_ty;
                 }
             }
-        })
+        });
     }
 
     pub fn walk_mut(&mut self, mut f: impl FnMut(&mut Type)) {
-        self.walk_mut_(&mut f)
+        self.walk_mut_(&mut f);
     }
 
     fn walk_(&self, f: &mut impl FnMut(&Type)) {
@@ -90,6 +90,7 @@ impl From<PrimType> for Type {
 }
 
 impl PrimType {
+    #[must_use]
     pub fn from_lit(value: Literal) -> Self {
         match value {
             Literal::Float(_) => Self::Float,

@@ -33,7 +33,7 @@ impl PolyType {
         }
 
         // assumption: all bound variables occur in the type
-        let first_fresh_var = vg.0 as u32;
+        let first_fresh_var = vg.0;
         vg.0 += self.bound_variables.len() as u32;
 
         ty.replace_vars(|var| {
@@ -96,7 +96,7 @@ mod tests {
         assert_eq!(
             polytype.instantiate(&mut var_gen),
             Type::Function(vec![fresh_var.clone()], Box::new(fresh_var))
-        )
+        );
     }
 
     #[test]
@@ -117,6 +117,6 @@ mod tests {
         assert_eq!(
             polytype.instantiate(&mut var_gen),
             Type::Function(vec![fresh_var1], Box::new(fresh_var2))
-        )
+        );
     }
 }
