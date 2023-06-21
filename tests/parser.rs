@@ -17,7 +17,7 @@ impl RegressionTests for ParserTests {
         match parse(input, 0) {
             Ok(ast) => {
                 writeln!(out, "{ast}")?;
-                ast::debug::dbg_ast(&ast, out, AstIndent::new())?;
+                ast::debug::dbg_ast(&ast, out, AstIndent::default())?;
             }
             Err(err) => err.emit_to_write(out, &sm)?,
         }

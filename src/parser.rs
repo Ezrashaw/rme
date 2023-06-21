@@ -157,10 +157,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         // this is different from `Parser::parse` which eagerly parses while
         // there are tokens remaining
         if let Some(tok) = self.input.next() {
-            return Err(Diag::error(
-                "extraneous input",
-                Span::merge(tok.span(), Span::EOF),
-            ));
+            return Err(Diag::error("extraneous input", tok.span().to(Span::EOF)));
         }
 
         Ok(stmt)
@@ -170,13 +167,24 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     ///
     /// Corresponds to the `<statement>` non-terminal.
     fn parse_stmt(&mut self) -> Result<Sp<Statement>, DErr> {
-        let stmt = match self.peek()?.inner() {
-            TokenKind::Keyword(Keyword::Let) => Statement::VarDef(self.parse_var_def()?),
-            TokenKind::Keyword(Keyword::Fn) => Statement::FnDef(self.parse_fn_def()?),
-            _ => Statement::Expr(self.parse_expr()?),
+        // FIXME: I'm not happy with this. It needs to be shrunk: perhaps
+        //        function pointers or something?
+        let (span, stmt) = match self.peek()?.inner() {
+            TokenKind::Keyword(Keyword::Let) => {
+                let var_def = self.parse_var_def()?;
+                (var_def.span(), Statement::VarDef(var_def))
+            }
+            TokenKind::Keyword(Keyword::Fn) => {
+                let fn_def = self.parse_fn_def()?;
+                (fn_def.span(), Statement::FnDef(fn_def))
+            }
+            _ => {
+                let expr = self.parse_expr()?;
+                (expr.span(), Statement::Expr(expr))
+            }
         };
 
-        Ok(stmt.spanify())
+        Ok(Sp::new(stmt, span))
     }
 
     /// Parses a `let` statement, also called a variable definition (`var_def`).
@@ -190,7 +198,8 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             expr: self.parse_expr()?,
         };
 
-        Ok(var_def.spanify())
+        let span = var_def.let_kw.to(var_def.expr.span());
+        Ok(Sp::new(var_def, span))
     }
 
     /// Parses a function definition.
@@ -205,6 +214,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         let equals = self.expect(TokenKind::Equals)?;
         let expr = self.parse_expr()?;
 
+        let span = fn_kw.to(expr.span());
         let fn_def = FnDef {
             fn_kw,
             name,
@@ -214,6 +224,6 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             expr,
         };
 
-        Ok(fn_def.spanify())
+        Ok(Sp::new(fn_def, span))
     }
 }

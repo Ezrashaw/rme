@@ -40,6 +40,7 @@ impl Span {
         self.len() == 0
     }
 
+    #[deprecated]
     pub fn merge(s1: Self, s2: Self) -> Self {
         let start = cmp::min(s1.start, s2.start);
         let end = cmp::max(s1.end, s2.end);
@@ -47,7 +48,7 @@ impl Span {
         Self::new(start, end)
     }
 
-    pub const fn until(self, other: Self) -> Self {
+    pub const fn to(self, other: Self) -> Self {
         Self::new(self.start, other.end)
     }
 

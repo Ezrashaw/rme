@@ -54,10 +54,14 @@ impl<I: Iterator<Item = Token>> Parser<I> {
     /// Corresponds to the `<unary_prefix>` non-terminal.
     fn parse_unary_prefix(&mut self) -> ExprRes {
         if let Some(op_span) = self.eat(TokenKind::Minus) {
-            let expr = self.parse_unary_prefix()?;
-            let expr = Expression::new_unop(Sp::new(UnOperator::Negation, op_span), expr);
+            let inner = self.parse_unary_prefix()?;
+            let span = op_span.to(inner.span());
+            let expr = Expression::UnaryOp {
+                op: Sp::new(UnOperator::Negation, op_span),
+                expr: inner.map_inner(Box::new),
+            };
 
-            Ok(expr)
+            Ok(Sp::new(expr, span))
         } else {
             self.parse_unary_postfix()
         }
@@ -72,8 +76,14 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
         // Unary postfix operators are inherently left-recursive. We have to
         // remove left recursion (with a loop) to be able to parse them.
-        while let Some(bang_span) = self.eat(TokenKind::Bang) {
-            expr = Expression::new_unop(Sp::new(UnOperator::Factorial, bang_span), expr);
+        while let Some(op_span) = self.eat(TokenKind::Bang) {
+            let span = expr.span().to(op_span);
+            let op_expr = Expression::UnaryOp {
+                op: Sp::new(UnOperator::Factorial, op_span),
+                expr: expr.map_inner(Box::new),
+            };
+
+            expr = Sp::new(op_expr, span);
         }
 
         Ok(expr)
@@ -90,8 +100,9 @@ impl<I: Iterator<Item = Token>> Parser<I> {
             let args = self.parse_comma_delimited(Self::parse_expr)?;
             let parens = (open, self.expect(TokenKind::ParenClose)?);
 
+            let span = name.span().to(parens.1);
             let fn_call = Expression::FunctionCall { name, parens, args };
-            expr = fn_call.spanify();
+            expr = Sp::new(fn_call, span);
         }
 
         Ok(expr)
@@ -113,7 +124,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 let parens = (tok_span, self.expect(TokenKind::ParenClose)?);
 
                 let expr = Expression::Paren { parens, expr };
-                expr.spanify()
+                Sp::new(expr, parens.0.to(parens.1))
             }
             TokenKind::Literal(lit) => Sp::new(Expression::Literal(lit), tok_span),
             TokenKind::Identifier(id) => Sp::new(Expression::Variable(id), tok_span),
@@ -146,7 +157,14 @@ macro_rules! parse_binop {
                 let op_span = self.next()?.span();
                 let rhs = self.$lower()?;
 
-                expr = Expression::new_binop(Sp::new(op, op_span), expr, rhs);
+                let span = expr.span().to(rhs.span());
+                let bin_op = Expression::BinaryOp{
+                    op: Sp::new(op, op_span),
+                    lhs: expr.map_inner(Box::new),
+                    rhs: rhs.map_inner(Box::new)
+                };
+
+                expr = Sp::new(bin_op, span);
             }
 
             Ok(expr)
