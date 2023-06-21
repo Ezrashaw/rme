@@ -6,14 +6,13 @@ use std::{
     ptr::{self, slice_from_raw_parts_mut},
 };
 
-pub struct Arena<'arena> {
+pub struct Arena {
     ptr: *mut u8,
     position: Cell<usize>,
     cap: usize,
-    _phantom: PhantomData<&'arena mut u8>,
 }
 
-impl<'arena> Arena<'arena> {
+impl Arena {
     pub fn new() -> Self {
         let layout = Layout::array::<u8>(64000).unwrap();
         assert!(layout.size() == 64_000);
@@ -24,11 +23,10 @@ impl<'arena> Arena<'arena> {
             ptr,
             position: Cell::new(0),
             cap: layout.size(),
-            _phantom: PhantomData,
         }
     }
 
-    pub fn alloc_from_iter<T>(&self, iter: impl Iterator<Item = T>) -> &'arena mut [T] {
+    pub fn alloc_from_iter<T>(&self, iter: impl Iterator<Item = T>) -> &mut [T] {
         let position = self.position.get();
         let mut count = 0;
 
@@ -43,7 +41,7 @@ impl<'arena> Arena<'arena> {
         unsafe { &mut *slice_from_raw_parts_mut(current_ptr, count) }
     }
 
-    pub fn alloc<T>(&self, value: T) -> &'arena mut T {
+    pub fn alloc<T>(&self, value: T) -> &mut T {
         let position = self.position.get();
         // SAFETY: `ptr::add` requires that the start and end pointers are
         //         within an allocation. The start pointer (`self.ptr`) is
@@ -73,7 +71,7 @@ impl<'arena> Arena<'arena> {
     }
 }
 
-impl Drop for Arena<'_> {
+impl Drop for Arena {
     fn drop(&mut self) {
         let layout = Layout::array::<u8>(64000).unwrap();
         assert!(layout.size() == 64_000);

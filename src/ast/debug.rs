@@ -5,23 +5,13 @@ use crate::{
     Sp,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 #[repr(transparent)]
 pub struct AstIndent(usize);
 
 impl AstIndent {
-    pub fn new() -> Self {
-        Self(0)
-    }
-
     fn mv(self) -> Self {
         Self(self.0 + 1)
-    }
-}
-
-impl Default for AstIndent {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

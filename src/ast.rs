@@ -19,31 +19,12 @@ pub enum Statement {
     FnDef(Sp<FnDef>),
 }
 
-impl Statement {
-    pub fn spanify(self) -> Sp<Self> {
-        let span = match &self {
-            Statement::Expr(expr) => expr.span(),
-            Statement::VarDef(var_def) => var_def.span(),
-            Statement::FnDef(fn_def) => fn_def.span(),
-        };
-
-        Sp::new(self, span)
-    }
-}
-
 #[derive(Clone)]
 pub struct VarDef {
     pub let_kw: Span,
     pub name: Sp<String>,
     pub equals: Span,
     pub expr: Sp<Expression>,
-}
-
-impl VarDef {
-    pub fn spanify(self) -> Sp<Self> {
-        let span = Span::merge(self.let_kw, self.expr.span());
-        Sp::new(self, span)
-    }
 }
 
 #[derive(Clone)]
@@ -54,13 +35,6 @@ pub struct FnDef {
     pub args: Vec<(Sp<String>, Option<Span>)>,
     pub equals: Span,
     pub expr: Sp<Expression>,
-}
-
-impl FnDef {
-    pub fn spanify(self) -> Sp<Self> {
-        let span = Span::merge(self.fn_kw, self.expr.span());
-        Sp::new(self, span)
-    }
 }
 
 pub type FnCallArg = (Sp<Expression>, Option<Span>);
@@ -87,41 +61,6 @@ pub enum Expression {
         parens: (Span, Span),
         args: Vec<FnCallArg>,
     },
-}
-
-impl Expression {
-    pub fn spanify(self) -> Sp<Self> {
-        let span = match &self {
-            Expression::Paren { parens, .. } => Span::merge(parens.0, parens.1),
-            Expression::BinaryOp { lhs, rhs, .. } => Span::merge(lhs.span(), rhs.span()),
-            Expression::UnaryOp { op, expr } => Span::merge(op.span(), expr.span()),
-            Expression::FunctionCall { name, parens, .. } => Span::merge(name.span(), parens.1),
-            Expression::Literal(_) | Expression::Variable(_) => {
-                panic!("cannot infer span for `{self}`")
-            }
-        };
-
-        Sp::new(self, span)
-    }
-
-    pub fn new_binop(op: Sp<BinOperator>, lhs: Sp<Self>, rhs: Sp<Self>) -> Sp<Self> {
-        let expr = Self::BinaryOp {
-            op,
-            lhs: lhs.map_inner(Box::new),
-            rhs: rhs.map_inner(Box::new),
-        };
-
-        expr.spanify()
-    }
-
-    pub fn new_unop(op: Sp<UnOperator>, expr: Sp<Self>) -> Sp<Self> {
-        let expr = Self::UnaryOp {
-            op,
-            expr: expr.map_inner(Box::new),
-        };
-
-        expr.spanify()
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
