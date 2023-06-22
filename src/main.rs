@@ -1,15 +1,26 @@
-use rme::{ast::Statement, lexer::Lexer, token::Token, DErr, Parser, SourceMap, Sp};
+use rme::{
+    ast::Statement,
+    lexer::Lexer,
+    token::Token,
+    typeck::{self, TypeEnv},
+    DErr, Parser, SourceMap, Sp,
+};
 use std::io::{stdin, stdout, Write};
 
 fn main() {
     let mut source_map = SourceMap::new();
+    let mut ty_env = TypeEnv::empty();
+    let mut stmts = Vec::new();
 
     loop {
         let stmt = get_stmt(&mut source_map);
         match stmt {
-            Ok(Some(_)) => {
-                // let ty = typeck::infer(&mut ty_env, stmt.inner());
-                // println!("{ty}");
+            Ok(Some(stmt)) => {
+                stmts.push(stmt);
+                // SAFETY: totally unsound :facepalm:
+                let stmt: &Sp<Statement> = unsafe { &*(stmts.last().unwrap() as *const _) };
+                let ty = typeck::infer_stmt(&mut ty_env, stmt.inner()).unwrap();
+                println!("{ty}");
             }
             Ok(None) => {}
             Err(diag) => diag.emit(&source_map),
