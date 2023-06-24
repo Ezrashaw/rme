@@ -9,7 +9,7 @@ use crate::{
 
 mod expr;
 
-pub fn parse(input: &str, span_offset: usize) -> Result<Ast, DErr> {
+pub fn parse(input: &str, span_offset: u32) -> Result<Ast, DErr> {
     let tokens = Lexer::new(input, span_offset).collect::<Result<Vec<Token>, DErr>>()?;
 
     let parser = Parser::new(tokens.into_iter());

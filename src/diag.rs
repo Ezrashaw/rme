@@ -114,8 +114,8 @@ impl<L: DiagnosticLevel> Diag<L> {
             let margin = Some(line_num.len());
 
             let mut span = Span::new(
-                span.start().clamp(0, line.len()),
-                span.end().clamp(0, line.len()),
+                span.start().clamp(0, line.len().try_into().unwrap()),
+                span.end().clamp(0, line.len().try_into().unwrap()),
             );
 
             if span.is_empty() {
@@ -129,9 +129,14 @@ impl<L: DiagnosticLevel> Diag<L> {
             writeln!(w, "{}", line.trim_end_matches('\n'))?;
 
             write_line_start(w, margin, None)?;
-            write!(w, "{0:width$}", "", width = span.start())?;
+            write!(w, "{0:width$}", "", width = span.start() as usize)?;
 
-            write!(w, "{SPAN_TAG}{:^^width$}{RESET}", "", width = span.len())?;
+            write!(
+                w,
+                "{SPAN_TAG}{:^^width$}{RESET}",
+                "",
+                width = span.len() as usize
+            )?;
             if let Some(span_tag) = &self.span_tag {
                 writeln!(w, " {SPAN_TAG}{span_tag}{RESET}")?;
                 write_line_start(w, margin, None)?;

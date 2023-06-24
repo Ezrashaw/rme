@@ -1,38 +1,36 @@
 use std::{cmp, fmt};
 
-// FIXME: this should be shrunk to two 32-bit integers (we get register opt
-//        then)
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {
-    start: usize,
-    end: usize,
+    start: u32,
+    end: u32,
 }
 
 impl Span {
-    pub const END_POS: usize = usize::MAX;
+    pub const END_POS: u32 = u32::MAX;
     pub const ALL: Self = Self::new(0, Self::END_POS);
     pub const EOF: Self = Self::new(Self::END_POS, Self::END_POS);
 
-    pub const fn new(start: usize, end: usize) -> Self {
+    pub const fn new(start: u32, end: u32) -> Self {
         Self { start, end }
     }
 
-    pub const fn new_single(pos: usize) -> Self {
+    pub const fn new_single(pos: u32) -> Self {
         Self {
             start: pos,
             end: pos + 1,
         }
     }
 
-    pub const fn start(&self) -> usize {
+    pub const fn start(&self) -> u32 {
         self.start
     }
 
-    pub const fn end(&self) -> usize {
+    pub const fn end(&self) -> u32 {
         self.end
     }
 
-    pub const fn len(&self) -> usize {
+    pub const fn len(&self) -> u32 {
         self.end - self.start
     }
 
@@ -52,7 +50,7 @@ impl Span {
         Self::new(self.start, other.end)
     }
 
-    pub const fn offset(self, distance: isize) -> Self {
+    pub const fn offset(self, distance: i32) -> Self {
         let start = self.start.saturating_add_signed(distance);
         let end = self.end.saturating_add_signed(distance);
 
@@ -90,15 +88,15 @@ impl SourceMap {
 
         for (line_num, line) in self.input.lines().enumerate() {
             let len = line.trim_end_matches('\n').len();
-            if pos + len > target {
-                return (line_num + 1, line, span.offset(-(pos as isize)));
+            if pos + len > target.try_into().unwrap() {
+                return (line_num + 1, line, span.offset(-(pos as i32)));
             }
             pos += len + 1;
         }
 
         let (line_num, line) = self.input.lines().enumerate().last().unwrap();
         let offset = pos - line.len();
-        (line_num + 1, line, span.offset(-(offset as isize)))
+        (line_num + 1, line, span.offset(-(offset as i32)))
     }
 
     pub fn len(&self) -> usize {
