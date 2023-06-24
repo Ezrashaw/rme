@@ -38,7 +38,7 @@ fn get_stmt(source_map: &mut SourceMap) -> Result<Option<Sp<Statement>>, DErr> {
         return Ok(None);
     }
 
-    let offset = source_map.len();
+    let offset = source_map.len() as u32;
     source_map.push_line(&input);
 
     let ast = parse_stmt(&input, offset)?;
@@ -50,7 +50,7 @@ fn get_stmt(source_map: &mut SourceMap) -> Result<Option<Sp<Statement>>, DErr> {
     Ok(Some(ast))
 }
 
-fn parse_stmt(input: &str, span_offset: usize) -> Result<Sp<Statement>, DErr> {
+fn parse_stmt(input: &str, span_offset: u32) -> Result<Sp<Statement>, DErr> {
     let tokens = Lexer::new(input, span_offset).collect::<Result<Vec<Token>, DErr>>()?;
 
     let parser = Parser::new(tokens.into_iter());

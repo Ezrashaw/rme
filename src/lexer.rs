@@ -75,7 +75,7 @@ pub(crate) mod token;
 /// ```
 // FIXME: maybe this should return an iterator instead?
 #[must_use]
-pub fn lex(input: &str, span_offset: usize) -> Vec<Result<Token, DErr>> {
+pub fn lex(input: &str, span_offset: u32) -> Vec<Result<Token, DErr>> {
     let lexer = Lexer::new(input, span_offset);
     lexer.collect()
 }
@@ -88,7 +88,7 @@ pub fn lex(input: &str, span_offset: usize) -> Vec<Result<Token, DErr>> {
 pub struct Lexer<'inp> {
     input: &'inp [u8],
     position: usize,
-    span_offset: usize,
+    span_offset: u32,
 }
 
 impl<'inp> Lexer<'inp> {
@@ -97,7 +97,7 @@ impl<'inp> Lexer<'inp> {
     /// `span_offset` can be used to ensure correct (unique) [`Span`]s, even
     /// when previously lexed (by a different instance) input exists.
     #[must_use]
-    pub const fn new(input: &'inp str, span_offset: usize) -> Self {
+    pub const fn new(input: &'inp str, span_offset: u32) -> Self {
         Self {
             input: input.as_bytes(),
             position: 0,
@@ -108,7 +108,10 @@ impl<'inp> Lexer<'inp> {
     /// Creates a new span, ending at the current position, respecting the
     /// `span_offset`.
     const fn new_span(&self, start: usize) -> Span {
-        Span::new(start + self.span_offset, self.position + self.span_offset)
+        Span::new(
+            start as u32 + self.span_offset,
+            self.position as u32 + self.span_offset,
+        )
     }
 
     /// Returns `Some(char)`, or `None` if we have exhausted the input.
