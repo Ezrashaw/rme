@@ -9,12 +9,12 @@ pub mod ast;
 mod diag;
 pub mod lexer;
 mod parser;
-mod span;
+mod source;
 pub mod typeck;
 
 pub use diag::*;
 pub use parser::*;
-pub use span::*;
+pub use source::*;
 
 pub mod token {
     // Re-export the `token` module from `rme::lexer`. This moves
