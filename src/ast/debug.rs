@@ -5,6 +5,8 @@ use crate::{
     Sp,
 };
 
+use super::Return;
+
 #[derive(Clone, Copy, Default)]
 #[repr(transparent)]
 pub struct AstIndent(usize);
@@ -60,6 +62,12 @@ fn dbg_stmt(stmt: &Sp<Statement>, w: &mut impl io::Write, indent: AstIndent) -> 
             write!(w, "{indent}")?;
             dbg_fn_def(fn_def, w, indent.mv())
         }
+        Statement::Return(rtn) => {
+            writeln!(w, "Statement(Return)@{:?}", stmt.span())?;
+
+            write!(w, "{indent}")?;
+            dbg_rtn(rtn, w, indent.mv())
+        },
     }
 }
 
@@ -94,6 +102,16 @@ pub fn dbg_fn_def(fn_def: &Sp<FnDef>, w: &mut impl io::Write, indent: AstIndent)
 
     write!(w, "{indent}expr: ")?;
     dbg_expr(fn_def.expr.as_ref(), w, indent.mv())
+}
+
+
+pub fn dbg_rtn(rtn: &Sp<Return>, w: &mut impl io::Write, indent: AstIndent) -> io::Result<()> {
+    let (rtn, span) = rtn.as_parts();
+    writeln!(w, "Return@{span:?}")?;
+
+    writeln!(w, "{indent}rtn_kw: {:?}", rtn.rtn_kw)?;
+    write!(w, "{indent}expr: ")?;
+    dbg_expr(rtn.expr.as_ref(), w, indent.mv())
 }
 
 pub fn dbg_expr(

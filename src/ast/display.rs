@@ -7,6 +7,8 @@ use crate::{
     ty::Type,
 };
 
+use super::Return;
+
 impl fmt::Display for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (stmt, _) in &self.statements {
@@ -27,6 +29,7 @@ fn display_stmt(stmt: &Statement, ty: Option<&Type>, f: &mut fmt::Formatter) -> 
         }
         Statement::VarDef(def) => display_var_def(def.inner(), ty, f),
         Statement::FnDef(def) => display_fn_def(def.inner(), ty, f),
+        Statement::Return(rtn) => display_rtn(rtn.inner(), ty, f),
     }
 }
 
@@ -53,6 +56,18 @@ fn display_var_def(var_def: &VarDef, ty: Option<&Type>, f: &mut fmt::Formatter) 
 impl fmt::Display for VarDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         display_var_def(self, None, f)
+    }
+}
+
+fn display_rtn(rtn: &Return, ty: Option<&Type>, f: &mut fmt::Formatter) -> fmt::Result {
+    f.write_kw(Keyword::Return)?;
+    f.write_ty_annotation(ty)?;
+    rtn.expr.fmt(f)
+}
+
+impl fmt::Display for Return {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        display_rtn(self, None, f)
     }
 }
 

@@ -11,9 +11,10 @@
 /* helpful REPL rule, allows semicolons to be omitted */
 <single_statement> ::= <statement> ";"?
 
-<statement> ::= <var_def> | <fn_def> | <expression>
+<statement> ::= <return> | <var_def> | <fn_def> | <expression>
 
-/* definitions (variable/function) */
+/* statement definitions */
+<return> ::= "return " <expression>
 <var_def> ::= "let " <identifier> "=" <expression>
 <fn_def>  ::= "fn " <identifier> "(" <fn_def_arg_list> ")" "=" <expression>
 

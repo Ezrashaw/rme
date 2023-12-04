@@ -177,7 +177,7 @@ impl<'inp> Lexer<'inp> {
 
                 match id {
                     // boolean literals aren't officially keywords, but you
-                    // can't get an identifier with them
+                    // still can't get an identifier with them
                     "true" => TokenKind::Literal(Literal::Bool(true)),
                     "false" => TokenKind::Literal(Literal::Bool(false)),
 

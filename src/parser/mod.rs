@@ -1,5 +1,6 @@
 use std::iter::Peekable;
 
+use crate::ast::Return;
 use crate::{
     ast::{Ast, FnDef, Statement, VarDef},
     diag::{DErr, Diag},
@@ -156,6 +157,10 @@ impl<I: Iterator<Item = Token>> Parser<I> {
                 let fn_def = self.parse_fn_def()?;
                 (fn_def.span(), Statement::FnDef(fn_def))
             }
+            TokenKind::Keyword(Keyword::Return) => {
+                let rtn = self.parse_return()?;
+                (rtn.span(), Statement::Return(rtn))
+            }
             _ => {
                 let expr = self.parse_expr()?;
                 (expr.span(), Statement::Expr(expr))
@@ -163,6 +168,19 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         };
 
         Ok(Sp::new(stmt, span))
+    }
+
+    /// Parses a `return` statement.
+    ///
+    /// Corresponds to the `<return>` non-terminal.
+    fn parse_return(&mut self) -> Result<Sp<Return>, DErr> {
+        let var_def = Return {
+            rtn_kw: self.expect(TokenKind::Keyword(Keyword::Return))?,
+            expr: self.parse_expr()?,
+        };
+
+        let span = var_def.rtn_kw.to(var_def.expr.span());
+        Ok(Sp::new(var_def, span))
     }
 
     /// Parses a `let` statement, also called a variable definition (`var_def`).
