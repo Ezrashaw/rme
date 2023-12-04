@@ -19,13 +19,12 @@ impl RegressionTests for TypeckTests {
         match parse(input) {
             Ok(ast) => {
                 let mut env = TypeEnv::empty();
-                let stmts = ast.statements.iter().map(|s| s.0.inner());
-                let tys = typeck::infer(&mut env, stmts.clone());
+                let tys = typeck::infer(&mut env, &ast);
 
                 match tys {
                     Ok(tys) => {
-                        for (ty, stmt) in tys.iter().zip(stmts) {
-                            let ty_stmt = TypedStmt(stmt, ty);
+                        for (ty, stmt) in tys.iter().zip(ast.statements) {
+                            let ty_stmt = TypedStmt(stmt.0.inner(), ty);
                             writeln!(out, "{ty_stmt}")?;
                         }
                     }

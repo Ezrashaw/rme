@@ -1,7 +1,7 @@
 use std::{collections::HashSet, fmt};
 
 use crate::{
-    ast::{Expression, FnDef, Statement, VarDef},
+    ast::{Ast, Expression, FnDef, Statement, VarDef},
     typeck::{
         polytype::PolyType,
         ty::{PrimType, Type},
@@ -10,14 +10,11 @@ use crate::{
     },
 };
 
-pub fn infer<'a>(
-    env: &mut TypeEnv<'a>,
-    stmts: impl Iterator<Item = &'a Statement>,
-) -> Result<Vec<Type>, TypeError> {
+pub fn infer<'a>(env: &mut TypeEnv<'a>, ast: &'a Ast) -> Result<Vec<Type>, TypeError> {
     let mut types = Vec::new();
 
-    for stmt in stmts {
-        let ty = infer_stmt(env, stmt)?;
+    for stmt in &ast.statements {
+        let ty = infer_stmt(env, stmt.0.inner())?;
         types.push(ty);
     }
 
