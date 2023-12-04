@@ -2,9 +2,10 @@ use std::iter::Peekable;
 
 use crate::{
     ast::{Ast, FnDef, Statement, VarDef},
+    diag::{DErr, Diag},
     lexer::Lexer,
     token::{Keyword, Token, TokenKind},
-    DErr, Diag, Sp, Span,
+    Sp, Span,
 };
 
 mod expr;

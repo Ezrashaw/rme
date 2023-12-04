@@ -6,13 +6,12 @@
 
 mod ansi;
 pub mod ast;
-mod diag;
+pub mod diag;
 pub mod lexer;
 mod parser;
 mod source;
 pub mod typeck;
 
-pub use diag::*;
 pub use parser::*;
 pub use source::*;
 

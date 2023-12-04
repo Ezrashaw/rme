@@ -61,9 +61,8 @@ fn infer_expr(
 
             Ok(ret_type)
         }
-        // Expression::BinaryOp { lhs, op, rhs } => todo!(),
-        // Expression::UnaryOp { op, expr } => todo!(),
-        _ => todo!(),
+        Expression::BinaryOp { .. } => Err(TypeError::NotYetImplemented("binary operations")),
+        Expression::UnaryOp { .. } => Err(TypeError::NotYetImplemented("unary operations")),
     }
 }
 

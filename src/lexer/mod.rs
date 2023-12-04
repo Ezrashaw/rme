@@ -14,8 +14,9 @@
 use std::str::FromStr;
 
 use crate::{
+    diag::{DErr, Diag, SubDiagLevel},
     token::{Keyword, Literal, Token, TokenKind},
-    DErr, Diag, Span, SubDiagLevel,
+    Span,
 };
 
 pub(crate) mod token;
@@ -35,7 +36,7 @@ pub(crate) mod token;
 /// for token in tokens {
 ///     assert_eq!(token?.into_parts().0, TokenKind::Plus);
 /// }
-/// # Ok::<(), rme::DErr>(())
+/// # Ok::<(), rme::diag::DErr>(())
 /// ```
 ///
 /// ## Directly with [`Vec`]
@@ -44,7 +45,7 @@ pub(crate) mod token;
 /// let mut tokens = rme::lexer::lex(";");
 /// let span = tokens.pop().unwrap()?.span();
 /// assert_eq!(span, Span::new(0, 1));
-/// # Ok::<(), rme::DErr>(())
+/// # Ok::<(), rme::diag::DErr>(())
 /// ```
 ///
 /// ## Incorrectly handling [`Diag`]s
@@ -52,12 +53,12 @@ pub(crate) mod token;
 /// // we *must* handle each error, dropping isn't OK
 /// let tokens = rme::lexer::lex("~");
 /// drop(tokens); // PANIC: we dropped a `Diag` without emitting it
-/// # Ok::<(), rme::DErr>(())
+/// # Ok::<(), rme::diag::DErr>(())
 /// ```
 ///
 /// ## Incorrectly handling *all* [`Diag`]s
 /// ```should_panic
-/// # use rme::{DErr, token::Token, SourceMap};
+/// # use rme::{diag::DErr, token::Token, SourceMap};
 /// let input = "~~";
 ///
 /// // PANIC: collecting `Result`s like this drops any other errors, invoking
@@ -71,7 +72,7 @@ pub(crate) mod token;
 ///     // this is all good, right?
 ///     Err(err) => err.emit(&SourceMap::from_input(input.to_owned())),
 /// }
-/// # Ok::<(), rme::DErr>(())
+/// # Ok::<(), rme::diag::DErr>(())
 /// ```
 // FIXME: maybe this should return an iterator instead?
 #[must_use]

@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
+    diag::DErr,
     ty::{Type, TypeVar},
-    DErr, Diag, Span,
+    Span,
 };
 
 pub fn unify(subst: &mut Subst, mut t1: Type, mut t2: Type) -> Result<(), TypeError> {
@@ -43,13 +44,18 @@ pub fn unify(subst: &mut Subst, mut t1: Type, mut t2: Type) -> Result<(), TypeEr
 pub enum TypeError {
     InfiniteType,
     TypeMismatch,
+    NotYetImplemented(&'static str),
 }
 
-impl TypeError {
-    pub fn into_diag(self) -> DErr {
-        match self {
-            Self::InfiniteType => Diag::error("infinite sized type", Span::ALL),
-            Self::TypeMismatch => Diag::error("type mismatch", Span::ALL),
+impl From<TypeError> for DErr {
+    fn from(value: TypeError) -> Self {
+        match value {
+            TypeError::InfiniteType => Self::error("infinite sized type", Span::ALL),
+            TypeError::TypeMismatch => Self::error("type mismatch", Span::ALL),
+            TypeError::NotYetImplemented(node_type) => Self::error(
+                format!("type inference for {node_type} not yet implemented"),
+                Span::ALL,
+            ),
         }
     }
 }

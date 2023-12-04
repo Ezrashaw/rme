@@ -1,4 +1,5 @@
 use rme::{
+    diag::DErr,
     parse,
     typeck::{self, TypeEnv},
     SourceMap,
@@ -10,10 +11,19 @@ fn main() {
     stdin().read_to_string(&mut input).unwrap();
     let source_map = SourceMap::from_input(input);
 
-    let ast = parse(source_map.source()).unwrap();
+    match compile(&source_map) {
+        Ok(_) => println!("compilation successful"),
+        Err(diag) => diag.emit(&source_map),
+    }
+}
+
+fn compile(source: &SourceMap) -> Result<(), DErr> {
+    let ast = parse(source.source())?;
     let formatted = ast.to_string();
     print!("{formatted}");
 
     let mut ty_env = TypeEnv::empty();
-    typeck::infer(&mut ty_env, &ast).unwrap();
+    typeck::infer(&mut ty_env, &ast)?;
+
+    Ok(())
 }
