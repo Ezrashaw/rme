@@ -14,7 +14,7 @@ impl RegressionTests for ParserTests {
     fn run_test(out: &mut impl io::Write, input: &str) -> io::Result<()> {
         let sm = SourceMap::from_input(input.to_owned());
 
-        match parse(input, 0) {
+        match parse(input) {
             Ok(ast) => {
                 writeln!(out, "{ast}")?;
                 ast::debug::dbg_ast(&ast, out, AstIndent::default())?;

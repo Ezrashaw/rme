@@ -21,7 +21,7 @@ use crate::{
 
 pub(crate) mod token;
 
-/// Fully lexes the provided input (with a span offset), using the [`Lexer`]
+/// Fully lexes the provided input, using the [`Lexer`]
 /// structure.
 ///
 /// Note that you *must* iterate the returned [`Vec`], and handle every
@@ -32,7 +32,7 @@ pub(crate) mod token;
 /// ## In a `for` loop:
 /// ```
 /// # use rme::{token::TokenKind, Span};
-/// let tokens = rme::lexer::lex("+++", 0);
+/// let tokens = rme::lexer::lex("+++");
 /// for token in tokens {
 ///     assert_eq!(token?.into_parts().0, TokenKind::Plus);
 /// }
@@ -42,16 +42,16 @@ pub(crate) mod token;
 /// ## Directly with [`Vec`]
 /// ```
 /// # use rme::{token::Token, Span};
-/// let mut tokens = rme::lexer::lex(";", 10);
+/// let mut tokens = rme::lexer::lex(";");
 /// let span = tokens.pop().unwrap()?.span();
-/// assert_eq!(span, Span::new(10, 11));
+/// assert_eq!(span, Span::new(0, 1));
 /// # Ok::<(), rme::DErr>(())
 /// ```
 ///
 /// ## Incorrectly handling [`Diag`]s
 /// ```should_panic
 /// // we *must* handle each error, dropping isn't OK
-/// let tokens = rme::lexer::lex("~", 0);
+/// let tokens = rme::lexer::lex("~");
 /// drop(tokens); // PANIC: we dropped a `Diag` without emitting it
 /// # Ok::<(), rme::DErr>(())
 /// ```
@@ -63,7 +63,7 @@ pub(crate) mod token;
 ///
 /// // PANIC: collecting `Result`s like this drops any other errors, invoking
 /// //        `Diag`'s drop guard.
-/// let tokens = rme::lexer::lex(input, 0)
+/// let tokens = rme::lexer::lex(input)
 ///     .into_iter()
 ///     .collect::<Result<Vec<Token>, DErr>>();
 /// match tokens {
@@ -76,43 +76,31 @@ pub(crate) mod token;
 /// ```
 // FIXME: maybe this should return an iterator instead?
 #[must_use]
-pub fn lex(input: &str, span_offset: u32) -> Vec<Result<Token, DErr>> {
-    let lexer = Lexer::new(input, span_offset);
-    lexer.collect()
+pub fn lex(input: &str) -> Vec<Result<Token, DErr>> {
+    Lexer::new(input).collect()
 }
 
 /// Simple whitespace-ignorant lexer.
 ///
-/// Iterates over [`Token`]s produced from an ASCII `&str`. Optionally allows a
-/// "span offset" to be set which is useful for the REPL where each line has
-/// its own [`Lexer`] but [`Span`]s must be unique.
+/// Iterates over [`Token`]s produced from an ASCII `&str`.
 pub struct Lexer<'inp> {
     input: &'inp [u8],
     position: usize,
-    span_offset: u32,
 }
 
 impl<'inp> Lexer<'inp> {
     /// Creates a new [`Lexer`] from the given input.
-    ///
-    /// `span_offset` can be used to ensure correct (unique) [`Span`]s, even
-    /// when previously lexed (by a different instance) input exists.
     #[must_use]
-    pub const fn new(input: &'inp str, span_offset: u32) -> Self {
+    pub const fn new(input: &'inp str) -> Self {
         Self {
             input: input.as_bytes(),
             position: 0,
-            span_offset,
         }
     }
 
-    /// Creates a new span, ending at the current position, respecting the
-    /// `span_offset`.
-    const fn new_span(&self, start: usize) -> Span {
-        Span::new(
-            start as u32 + self.span_offset,
-            self.position as u32 + self.span_offset,
-        )
+    /// Creates a new span, ending at the current position.
+    const fn new_span(&self, from: u32) -> Span {
+        Span::new(from, self.position as u32)
     }
 
     /// Returns `Some(char)`, or `None` if we have exhausted the input.
@@ -142,7 +130,7 @@ impl<'inp> Lexer<'inp> {
 
         // We need to save this for later. Note that `self.position` records
         // where we *will* read, not where we *just* read, hence the decrement.
-        let span_start = self.position - 1;
+        let span_start = (self.position - 1) as u32;
 
         let kind = match ch {
             // multi-character tokens

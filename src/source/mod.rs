@@ -106,6 +106,10 @@ impl SourceMap {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    pub fn source(&self) -> &str {
+        self.input.as_ref()
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Hash)]
