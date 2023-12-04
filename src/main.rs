@@ -15,5 +15,5 @@ fn main() {
     print!("{formatted}");
 
     let mut ty_env = TypeEnv::empty();
-    typeck::infer(&mut ty_env, ast.statements.iter().map(|x| x.0.inner())).unwrap();
+    typeck::infer(&mut ty_env, &ast).unwrap();
 }
