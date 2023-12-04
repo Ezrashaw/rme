@@ -16,7 +16,7 @@ impl RegressionTests for TypeckTests {
     fn run_test(out: &mut impl io::Write, input: &str) -> io::Result<()> {
         let sm = SourceMap::from_input(input.to_owned());
 
-        match parse(input, 0) {
+        match parse(input) {
             Ok(ast) => {
                 let mut env = TypeEnv::empty();
                 let stmts = ast.statements.iter().map(|s| s.0.inner());

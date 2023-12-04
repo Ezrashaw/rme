@@ -9,8 +9,8 @@ use crate::{
 
 mod expr;
 
-pub fn parse(input: &str, span_offset: u32) -> Result<Ast, DErr> {
-    let tokens = Lexer::new(input, span_offset).collect::<Result<Vec<Token>, DErr>>()?;
+pub fn parse(input: &str) -> Result<Ast, DErr> {
+    let tokens = Lexer::new(input).collect::<Result<Vec<Token>, DErr>>()?;
 
     let parser = Parser::new(tokens.into_iter());
     parser.parse()
@@ -138,29 +138,6 @@ impl<I: Iterator<Item = Token>> Parser<I> {
         }
 
         Ok(Ast { statements })
-    }
-
-    /// Parses a single statement and ensures that no other input was given.
-    /// This is called per-line in the REPL.
-    ///
-    /// Parses the `<statement>` non-terminal, however also ensures that no
-    /// input is left over (not per the grammar).
-    // FIXME: this function needs to be tested, our current infrastructure
-    //        can't handle this as it doesn't descend from `Parser::parse`
-    pub fn parse_single_stmt(mut self) -> Result<Sp<Statement>, DErr> {
-        let stmt = self.parse_stmt()?;
-
-        // as part of the grammar (and user-friendliness), we allow a trailing
-        // semicolon (ignoring it if does exist) for convenience purposes
-        self.eat(TokenKind::Semi);
-
-        // this is different from `Parser::parse` which eagerly parses while
-        // there are tokens remaining
-        if let Some(tok) = self.input.next() {
-            return Err(Diag::error("extraneous input", tok.span().to(Span::EOF)));
-        }
-
-        Ok(stmt)
     }
 
     /// Parses a statement, without semicolon delimiter (per the grammar).

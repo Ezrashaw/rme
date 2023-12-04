@@ -24,7 +24,7 @@ pub fn infer<'a>(
     Ok(types)
 }
 
-pub fn infer_stmt<'a>(env: &mut TypeEnv<'a>, stmt: &'a Statement) -> Result<Type, TypeError> {
+fn infer_stmt<'a>(env: &mut TypeEnv<'a>, stmt: &'a Statement) -> Result<Type, TypeError> {
     let vg = &mut TypeVarGen::new();
     let subst = &mut Subst::empty();
 
