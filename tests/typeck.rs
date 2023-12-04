@@ -1,4 +1,5 @@
 use crate::RegressionTests;
+use rme::diag::DErr;
 use rme::{
     ast::TypedStmt,
     parse,
@@ -28,7 +29,7 @@ impl RegressionTests for TypeckTests {
                             writeln!(out, "{ty_stmt}")?;
                         }
                     }
-                    Err(err) => err.into_diag().emit_to_write(out, &sm)?,
+                    Err(err) => Into::<DErr>::into(err).emit_to_write(out, &sm)?,
                 }
             }
             Err(err) => err.emit_to_write(out, &sm)?,

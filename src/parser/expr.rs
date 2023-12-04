@@ -1,8 +1,9 @@
 use crate::{
     ast::{BinOperator, Expression, UnOperator},
+    diag::DErr,
     parser::Parser,
     token::{Token, TokenKind},
-    DErr, Sp,
+    Sp,
 };
 
 // FIXME: add doc-comment here
