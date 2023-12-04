@@ -17,6 +17,13 @@ pub enum Statement {
     Expr(Sp<Expression>),
     VarDef(Sp<VarDef>),
     FnDef(Sp<FnDef>),
+    Return(Sp<Return>)
+}
+
+#[derive(Clone)]
+pub struct Return {
+    pub rtn_kw: Span,
+    pub expr: Sp<Expression>
 }
 
 #[derive(Clone)]

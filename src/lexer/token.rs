@@ -140,6 +140,11 @@ pub enum Keyword {
     ///
     /// Used for function definitions.
     Fn,
+
+    /// `return` keyword.
+    ///
+    /// Used to return a value from a function.
+    Return,
 }
 
 impl FromStr for Keyword {
@@ -152,6 +157,7 @@ impl FromStr for Keyword {
         Ok(match s {
             "let" => Self::Let,
             "fn" => Self::Fn,
+            "return" => Self::Return,
             _ => return Err(()),
         })
     }
@@ -166,6 +172,7 @@ impl Keyword {
         match self {
             Self::Let => "let",
             Self::Fn => "fn",
+            Self::Return => "return",
         }
     }
 }

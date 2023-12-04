@@ -1,0 +1,22 @@
+[36;1mreturn[0m x[90;1m;[0m
+[36;1mreturn[0m [33;3m5[0m[90;1m;[0m
+return_x[90;1m;[0m
+
+---AST Statement (semi: 8..9) #0---
+Statement(Return)@0..8
+| Return@0..8
+| | rtn_kw: 0..6
+| | expr: Variable("x")@7..8
+-------
+
+---AST Statement (semi: 18..19) #1---
+Statement(Return)@10..18
+| Return@10..18
+| | rtn_kw: 10..16
+| | expr: Float(5.0)@17..18
+-------
+
+---AST Statement (semi: 28..29) #2---
+Statement(Expression)@20..28
+| Variable("return_x")@20..28
+-------

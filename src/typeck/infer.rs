@@ -29,6 +29,7 @@ fn infer_stmt<'a>(env: &mut TypeEnv<'a>, stmt: &'a Statement) -> Result<Type, Ty
         Statement::Expr(expr) => infer_expr(env, vg, subst, expr.inner()),
         Statement::VarDef(var_def) => infer_var_def(env, vg, subst, var_def.inner()),
         Statement::FnDef(fn_def) => infer_fn_def(env, vg, subst, fn_def.inner()),
+        Statement::Return(_) => Err(TypeError::NotYetImplemented("return statements")),
     }
 }
 
