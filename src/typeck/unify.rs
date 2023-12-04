@@ -75,7 +75,9 @@ impl Subst {
     }
 
     pub fn subst_shallow(&self, ty: &mut Type) {
-        if let Type::Var(var) = ty && let Some(replace) = self.0.get(var).cloned()  {
+        if let Type::Var(var) = ty
+            && let Some(replace) = self.0.get(var).cloned()
+        {
             *ty = replace;
         }
     }

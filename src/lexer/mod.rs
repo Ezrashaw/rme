@@ -2,6 +2,7 @@
 #![deny(clippy::pedantic)]
 #![deny(clippy::nursery)]
 #![deny(missing_docs)]
+#![allow(clippy::cast_possible_truncation)] // FIXME: remove this
 
 //! Utilities for lexing RME code.
 //!
@@ -174,18 +175,16 @@ impl<'inp> Lexer<'inp> {
 
                 match id {
                     // boolean literals aren't officially keywords, but you
-                    // can't get an identifier with them 
+                    // can't get an identifier with them
                     "true" => TokenKind::Literal(Literal::Bool(true)),
                     "false" => TokenKind::Literal(Literal::Bool(false)),
 
                     // check if the identifier is a keyword, and return a
                     // lightweight `Keyword`
-                    _ if let Ok(kw) = Keyword::from_str(id) => {
-                        TokenKind::Keyword(kw)
-                    }
+                    _ if let Ok(kw) = Keyword::from_str(id) => TokenKind::Keyword(kw),
 
                     // otherwise, return a normal identifier
-                    _ => TokenKind::Identifier(id.to_owned())
+                    _ => TokenKind::Identifier(id.to_owned()),
                 }
             }
 
@@ -253,7 +252,9 @@ impl<'inp> Lexer<'inp> {
     /// The `cont` parameter may not return true for non-ASCII values.
     unsafe fn lex_complex(&mut self, cont: for<'a> fn(&'a u8) -> bool) -> &str {
         let start_pos = self.position - 1;
-        while let Some(ch) = self.peek_char() && cont(&ch) {
+        while let Some(ch) = self.peek_char()
+            && cont(&ch)
+        {
             // it is a safety requirement of this function that this is true,
             // no harm in checking though
             debug_assert!(self.peek_char().unwrap().is_ascii());
@@ -276,7 +277,9 @@ impl<'inp> Lexer<'inp> {
         let pos = self.position - 1;
         let range = pos..(pos + multi_char.len());
 
-        if let Some(tok) = &self.input.get(range) && multi_char == *tok {
+        if let Some(tok) = &self.input.get(range)
+            && multi_char == *tok
+        {
             self.position += multi_char.len() - 1;
             true
         } else {
