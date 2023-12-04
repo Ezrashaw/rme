@@ -2,7 +2,6 @@
 #![deny(clippy::pedantic)]
 #![deny(clippy::nursery)]
 #![deny(missing_docs)]
-#![allow(clippy::cast_possible_truncation)] // FIXME: remove this
 
 //! Utilities for lexing RME code.
 //!
@@ -80,18 +79,28 @@ pub fn lex(input: &str) -> Vec<Result<Token, DErr>> {
     Lexer::new(input).collect()
 }
 
+// allowing 16-bit platforms would break `Lexer` because it measures positions
+// with `u32`; a 16-bit pointer would allow positions that are longer than any
+// possible input
+#[cfg(target_pointer_width = "16")]
+compile_error!("RME does not support 16-bit platforms");
+
 /// Simple whitespace-ignorant lexer.
 ///
 /// Iterates over [`Token`]s produced from an ASCII `&str`.
 pub struct Lexer<'inp> {
     input: &'inp [u8],
-    position: usize,
+    position: u32,
 }
 
 impl<'inp> Lexer<'inp> {
     /// Creates a new [`Lexer`] from the given input.
+    ///
+    /// # Panics
+    /// This function panics if `input` is longer than `u32::MAX` bytes.
     #[must_use]
     pub const fn new(input: &'inp str) -> Self {
+        assert!(input.len() < u32::MAX as usize);
         Self {
             input: input.as_bytes(),
             position: 0,
@@ -100,19 +109,22 @@ impl<'inp> Lexer<'inp> {
 
     /// Creates a new span, ending at the current position.
     const fn new_span(&self, from: u32) -> Span {
-        Span::new(from, self.position as u32)
+        Span::new(from, self.position)
     }
 
     /// Returns `Some(char)`, or `None` if we have exhausted the input.
-    fn next_char(&mut self) -> Option<u8> {
-        let ch = self.peek_char()?;
+    fn next(&mut self) -> Option<u8> {
+        let ch = self.peek()?;
         self.position += 1;
         Some(ch)
     }
 
     /// Peeks a character from the input, or returns `None` if no more exist.
-    fn peek_char(&self) -> Option<u8> {
-        (self.position < self.input.len()).then(|| self.input[self.position])
+    fn peek(&self) -> Option<u8> {
+        // SAFETY: It is a safety variant of this type that `input` is less
+        //         than `u32::MAX` bytes.
+        let len = unsafe { u32::try_from(self.input.len()).unwrap_unchecked() };
+        (self.position < len).then(|| self.input[self.position as usize])
     }
 
     /// Returns the next token from the input, advancing the input.
@@ -122,15 +134,16 @@ impl<'inp> Lexer<'inp> {
     /// - If the return value is `Some(Err)`, then some error was encountered
     ///   *while lexing a token* (e.g. float literal had 2 decimal points).
     fn next_token(&mut self) -> Option<Result<Token, DErr>> {
+        let mut ch = self.next()?;
+
         // skip all whitespace
-        let mut ch = self.next_char()?;
         while ch.is_ascii_whitespace() {
-            ch = self.next_char()?;
+            ch = self.next()?;
         }
 
         // We need to save this for later. Note that `self.position` records
         // where we *will* read, not where we *just* read, hence the decrement.
-        let span_start = (self.position - 1) as u32;
+        let span_start = self.position - 1;
 
         let kind = match ch {
             // multi-character tokens
@@ -208,7 +221,7 @@ impl<'inp> Lexer<'inp> {
                 // multi-byte character. We've already read one character, so
                 // skip the rest to avoid emitting duplicate errors. See also
                 // the [Wikipedia page](https://en.wikipedia.org/wiki/UTF-8).
-                self.position += (ch.leading_ones() - 1) as usize;
+                self.position += ch.leading_ones() - 1;
 
                 return Some(Err(err));
             }
@@ -239,13 +252,13 @@ impl<'inp> Lexer<'inp> {
     ///
     /// The `cont` parameter may not return true for non-ASCII values.
     unsafe fn lex_complex(&mut self, cont: for<'a> fn(&'a u8) -> bool) -> &str {
-        let start_pos = self.position - 1;
-        while let Some(ch) = self.peek_char()
+        let start_pos = (self.position - 1) as usize;
+        while let Some(ch) = self.peek()
             && cont(&ch)
         {
             // it is a safety requirement of this function that this is true,
             // no harm in checking though
-            debug_assert!(self.peek_char().unwrap().is_ascii());
+            debug_assert!(self.peek().unwrap().is_ascii());
 
             self.position += 1;
         }
@@ -253,7 +266,7 @@ impl<'inp> Lexer<'inp> {
         // SAFETY: This only corresponds to a range which has been accepted by
         //         `cont`. The `cont` function is required to uphold this
         //         functions invariant (must be ASCII).
-        unsafe { std::str::from_utf8_unchecked(&self.input[start_pos..self.position]) }
+        unsafe { std::str::from_utf8_unchecked(&self.input[start_pos..self.position as usize]) }
     }
 
     /// Checks if the given multi-character token exists at the current
@@ -262,13 +275,20 @@ impl<'inp> Lexer<'inp> {
     /// If so, the input is advanced passed the token and `true` is returned,
     /// otherwise, `false` is returned and the position is not advanced.
     fn lex_multi_char(&mut self, multi_char: &[u8]) -> bool {
-        let pos = self.position - 1;
+        // we go backwards to offset the character that we have already read in
+        // `next_token`.
+        let pos = (self.position - 1) as usize;
         let range = pos..(pos + multi_char.len());
 
         if let Some(tok) = &self.input.get(range)
             && multi_char == *tok
         {
-            self.position += multi_char.len() - 1;
+            // we decrement `multi_char`'s length because we are already one
+            // character past, see the comment on `pos` above
+            // SAFETY: This is allowed because all `multi_char`s are less than
+            // `u32::MAX`. Technically this function should be `unsafe`, but
+            // I'm not too worried about that.
+            self.position += unsafe { u32::try_from(multi_char.len() - 1).unwrap_unchecked() };
             true
         } else {
             false
