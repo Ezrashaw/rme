@@ -130,12 +130,12 @@ fn run_test<T: RegressionTests>(test_file: PathBuf, bless: bool) -> Result<(), S
             .output()
             .unwrap();
 
-        let diff = String::from_utf8(diff.stdout).unwrap();
-        let diff = diff
-            .lines()
-            .skip(3)
-            .map(|x| format!("{x}\n"))
-            .collect::<String>();
+        let diff_raw = String::from_utf8(diff.stdout).unwrap();
+        let mut diff = String::new();
+        for line in diff_raw.lines().skip(3) {
+            diff.push_str(line);
+            diff.push('\n');
+        }
 
         let display = test_file.display();
 

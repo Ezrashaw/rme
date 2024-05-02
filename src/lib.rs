@@ -1,8 +1,9 @@
 #![feature(if_let_guard)]
 #![feature(let_chains)]
+#![warn(clippy::pedantic, clippy::nursery)]
 // #![warn(missing_docs)]
 // #![allow(clippy::must_use_candidate)]
-// #![allow(clippy::missing_panics_doc)]
+#![allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
 
 mod ansi;
 pub mod ast;

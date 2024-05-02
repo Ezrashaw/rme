@@ -12,7 +12,7 @@ use super::Return;
 pub struct AstIndent(usize);
 
 impl AstIndent {
-    fn mv(self) -> Self {
+    const fn mv(self) -> Self {
         Self(self.0 + 1)
     }
 }
@@ -67,7 +67,7 @@ fn dbg_stmt(stmt: &Sp<Statement>, w: &mut impl io::Write, indent: AstIndent) -> 
 
             write!(w, "{indent}")?;
             dbg_rtn(rtn, w, indent.mv())
-        },
+        }
     }
 }
 
@@ -103,7 +103,6 @@ pub fn dbg_fn_def(fn_def: &Sp<FnDef>, w: &mut impl io::Write, indent: AstIndent)
     write!(w, "{indent}expr: ")?;
     dbg_expr(fn_def.expr.as_ref(), w, indent.mv())
 }
-
 
 pub fn dbg_rtn(rtn: &Sp<Return>, w: &mut impl io::Write, indent: AstIndent) -> io::Result<()> {
     let (rtn, span) = rtn.as_parts();

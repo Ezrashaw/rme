@@ -83,11 +83,7 @@ impl<I: Iterator<Item = Token>> Parser<I> {
 
     fn is(&mut self, kind: TokenKind) -> bool {
         let tok = self.input.peek();
-        if let Some(tok) = tok {
-            *tok.inner() == kind
-        } else {
-            false
-        }
+        tok.map_or(false, |tok| *tok.inner() == kind)
     }
 
     fn parse_comma_delimited<T>(

@@ -11,10 +11,12 @@ impl Span {
     pub const ALL: Self = Self::new(0, Self::END_POS);
     pub const EOF: Self = Self::new(Self::END_POS, Self::END_POS);
 
+    #[must_use]
     pub const fn new(start: u32, end: u32) -> Self {
         Self { start, end }
     }
 
+    #[must_use]
     pub const fn new_single(pos: u32) -> Self {
         Self {
             start: pos,
@@ -22,23 +24,28 @@ impl Span {
         }
     }
 
+    #[must_use]
     pub const fn start(&self) -> u32 {
         self.start
     }
 
+    #[must_use]
     pub const fn end(&self) -> u32 {
         self.end
     }
 
+    #[must_use]
     pub const fn len(&self) -> u32 {
         self.end - self.start
     }
 
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     #[deprecated]
+    #[must_use]
     pub fn merge(s1: Self, s2: Self) -> Self {
         let start = cmp::min(s1.start, s2.start);
         let end = cmp::max(s1.end, s2.end);
@@ -46,10 +53,12 @@ impl Span {
         Self::new(start, end)
     }
 
+    #[must_use]
     pub const fn to(self, other: Self) -> Self {
         Self::new(self.start, other.end)
     }
 
+    #[must_use]
     pub const fn offset(self, distance: i32) -> Self {
         let start = self.start.saturating_add_signed(distance);
         let end = self.end.saturating_add_signed(distance);
@@ -70,10 +79,12 @@ pub struct SourceMap {
 }
 
 impl SourceMap {
+    #[must_use]
     pub const fn new() -> Self {
         Self::from_input(String::new())
     }
 
+    #[must_use]
     pub const fn from_input(input: String) -> Self {
         Self { input }
     }
@@ -82,6 +93,7 @@ impl SourceMap {
         self.input.push_str(line);
     }
 
+    #[must_use]
     pub fn get_span_lined(&self, span: Span) -> (usize, &str, Span) {
         let target = span.start();
         let mut pos = 0;
@@ -99,14 +111,17 @@ impl SourceMap {
         (line_num + 1, line, span.offset(-(offset as i32)))
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.input.len()
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    #[must_use]
     pub fn source(&self) -> &str {
         self.input.as_ref()
     }
@@ -160,6 +175,7 @@ impl<T: fmt::Debug> fmt::Debug for Sp<T> {
 pub type SpBox<T> = Sp<Box<T>>;
 
 impl<T> SpBox<T> {
+    #[must_use]
     pub const fn unbox(&self) -> Sp<&T> {
         Sp::new(self.inner(), self.span())
     }

@@ -115,7 +115,7 @@ pub struct TypeEnv<'a> {
 
 impl<'a> TypeEnv<'a> {
     #[must_use]
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         Self {
             variables: Vec::new(),
         }
@@ -217,7 +217,7 @@ mod tests {
     const TY_VAR: TypeVar = TypeVar::from_u32(0);
     const VAR_TY: Type = Type::Var(TY_VAR);
 
-    fn generalize(env: TypeEnv, ty: Type, expected_bound_vars: &[TypeVar]) {
+    fn generalize(env: &TypeEnv, ty: Type, expected_bound_vars: &[TypeVar]) {
         let polytype = env.generalize_ty(ty);
 
         assert_eq!(polytype.into_inner().0, expected_bound_vars);
@@ -227,7 +227,7 @@ mod tests {
     fn test_generalization1() {
         let env = TypeEnv::empty();
 
-        generalize(env, VAR_TY, &[TY_VAR]);
+        generalize(&env, VAR_TY, &[TY_VAR]);
     }
 
     #[test]
@@ -237,7 +237,7 @@ mod tests {
             variables: vec![("", PolyType::new(vec![], VAR_TY))],
         };
 
-        generalize(env, VAR_TY, &[]);
+        generalize(&env, VAR_TY, &[]);
     }
 
     #[test]
@@ -251,6 +251,6 @@ mod tests {
 
         let ty = Type::Function(vec![var_ty2], Box::new(VAR_TY));
 
-        generalize(env, ty, &[ty_var2]);
+        generalize(&env, ty, &[ty_var2]);
     }
 }

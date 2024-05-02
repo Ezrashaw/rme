@@ -36,7 +36,8 @@ impl PolyType {
 
         // assumption: all bound variables occur in the type
         let first_fresh_var = vg.0;
-        vg.0 += self.bound_variables.len() as u32;
+        vg.0 += u32::try_from(self.bound_variables.len())
+            .expect("too many type variables (> u32::MAX)!");
 
         ty.replace_vars(|var| {
             self.bound_variables

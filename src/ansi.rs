@@ -134,7 +134,7 @@ pub enum Colour {
 impl Colour {
     fn write_fg(self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let code = match self {
-            Colour::Colour256(code) => return write!(f, "38;5;{code}"),
+            Self::Colour256(code) => return write!(f, "38;5;{code}"),
             _ => self.discriminant(),
         };
 
@@ -143,7 +143,7 @@ impl Colour {
 
     fn write_bg(self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let code = match self {
-            Colour::Colour256(code) => return write!(f, "48;5;{code}"),
+            Self::Colour256(code) => return write!(f, "48;5;{code}"),
             _ => self.discriminant() + 10,
         };
 

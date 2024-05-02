@@ -17,13 +17,13 @@ pub enum Statement {
     Expr(Sp<Expression>),
     VarDef(Sp<VarDef>),
     FnDef(Sp<FnDef>),
-    Return(Sp<Return>)
+    Return(Sp<Return>),
 }
 
 #[derive(Clone)]
 pub struct Return {
     pub rtn_kw: Span,
-    pub expr: Sp<Expression>
+    pub expr: Sp<Expression>,
 }
 
 #[derive(Clone)]
@@ -103,7 +103,8 @@ pub enum UnOperator {
 impl UnOperator {
     /// Returns a value indicating whether the [`UnOperator`] is valid in the
     /// prefix or postfix position.
-    pub fn is_postfix(self) -> bool {
+    #[must_use]
+    pub const fn is_postfix(self) -> bool {
         matches!(self, Self::Factorial)
     }
 }
